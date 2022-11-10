@@ -5,9 +5,11 @@ import redis
 import tensorflow as tf
 import tensorflow_addons as tfa
 from tensorflow.keras import mixed_precision
+import argparse
 
 from acg2vec_pixiv_predict_model import create_acg2vec_pixiv_predict_model
 from dataset_generator import build_dataset
+from utils import ouput_model_arch_to_image
 
 policy = mixed_precision.Policy('mixed_float16')
 mixed_precision.set_global_policy(policy)
@@ -115,22 +117,32 @@ log_dir = "logs/fit/" + config_name
 batch_size = model_config['batch_size']
 tensorBoard_update_freq = 'batch'
 epoch = 100
-resume_flag = True
+#resume_flag = True
 # epoch数目
 epoch_index = int(redis_conn.get('pixiv_mtl_predict_epoch_index'))
+#命令行参数
+parser = argparse.ArgumentParser()
+parser.add_argument("load_ck",type=bool,default=True)
+parser.add_argument("test",type=bool,default=False)
+args = parser.parse_args()
+
+
+
 
 model = build_model(model_config)
-
+#ouput_model_arch_to_image(model,'deepix.jpg')
 # model.save('/Volumes/Data/oysterqaq/Desktop/deepix.h5')
-checkpoint_dir = os.path.dirname(checkpoint_path)
-print(checkpoint_dir)
+
 
 # 从check_point加载参数
-if resume_flag:
+if args.load_ck:
+    checkpoint_dir = os.path.dirname(checkpoint_path)
     latest = tf.train.latest_checkpoint(checkpoint_dir)
     model.load_weights(latest)
+    print('加载历史权重完成'+latest)
 
-dataset = build_dataset(batch_size)
+dataset = build_dataset(batch_size,args.test)
+
 #model.summary()
 model.fit(dataset, epochs=epoch, steps_per_epoch=None, callbacks=[
     # tf.keras.callbacks.LambdaCallback(on_batch_end=batch_metric_to_tensorboard),

@@ -30,13 +30,14 @@ engine = sqlalchemy.create_engine('mysql+pymysql://root:Cheerfun.dev@local.ipv4.
 offset = 640
 httpclient = urllib3.PoolManager()
 min_deepix_train_index = 20000000
+max_deepix_train_index = 90000000
 
 
 # deepix_train_index = 50000000
 def generate_data_from_db():
     deepix_train_index = int(redis_conn.get(redis_index_key))
     if (deepix_train_index < min_deepix_train_index):
-        deepix_train_index = 90000000
+        deepix_train_index = max_deepix_train_index
         redis_conn.set(redis_index_key, deepix_train_index)
         epoch_index = int(redis_conn.get(redis_epoch_key))
         redis_conn.set(redis_epoch_key, epoch_index + 1)
@@ -129,6 +130,11 @@ def map_img_and_label(x, y):
 
 
 def build_dataset(batch_size,test=False):
+    if test:
+        global min_deepix_train_index
+        min_deepix_train_index = 60000000
+        global  max_deepix_train_index
+        max_deepix_train_index = 70000000
 
     dataset = tf.data.Dataset.from_generator(generate_data_from_db,
                                              output_types=(
