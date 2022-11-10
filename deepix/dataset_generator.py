@@ -10,8 +10,8 @@ AUTOTUNE = tf.data.experimental.AUTOTUNE
 
 # 数据集构建
 # 获取索引
-redis_index_key = 'pixiv_mtl_predict_illust_index'
-redis_epoch_key = 'pixiv_mtl_predict_epoch_index'
+redis_index_key = 'deepix_illust_index'
+redis_epoch_key = 'deepix_epoch_index'
 redis_conn = redis.Redis(host='local.ipv4.host', port=6379, password='', db=0)
 sql = '''
 select illust_id,img_path,
@@ -35,7 +35,8 @@ max_deepix_train_index = 90000000
 
 # deepix_train_index = 50000000
 def generate_data_from_db():
-    deepix_train_index = int(redis_conn.get(redis_index_key))
+    #deepix_train_index = int(redis_conn.get(redis_index_key))
+    deepix_train_index = max_deepix_train_index if redis_conn.get(redis_index_key) !=None else int(redis_conn.get(redis_index_key))
     if (deepix_train_index < min_deepix_train_index):
         deepix_train_index = max_deepix_train_index
         redis_conn.set(redis_index_key, deepix_train_index)

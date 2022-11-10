@@ -7,7 +7,7 @@ import tensorflow_addons as tfa
 from tensorflow.keras import mixed_precision
 import argparse
 
-from acg2vec_pixiv_predict_model import create_acg2vec_pixiv_predict_model
+from deepix import create_acg2vec_pixiv_predict_model
 from dataset_generator import build_dataset
 from utils import ouput_model_arch_to_image
 
@@ -101,11 +101,27 @@ def build_model(model_config):
     return model
 
 
+#命令行参数
+def str2bool(v):
+    if isinstance(v, bool):
+        return v
+    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError('Boolean value expected.')
+parser = argparse.ArgumentParser()
+parser.add_argument("--load_ck",type=str2bool,default=True)
+parser.add_argument("--test",type=str2bool,default=False)
+parser.add_argument("--config_name",type=str,default='deepix_v1')
+args = parser.parse_args()
+print(args.load_ck)
 # 初始化redis连接
 redis_conn = redis.Redis(host='local.ipv4.host', port=6379, password='', db=0)
 
 # 配置文件名
-config_name = 'pixiv_mtl_predict_v1'
+config_name = args.config_name
 config_path = 'config/' + config_name + '.json'
 with open(config_path, 'r') as load_f:
     model_config = json.load(load_f)
@@ -119,12 +135,8 @@ tensorBoard_update_freq = 'batch'
 epoch = 100
 #resume_flag = True
 # epoch数目
-epoch_index = int(redis_conn.get('pixiv_mtl_predict_epoch_index'))
-#命令行参数
-parser = argparse.ArgumentParser()
-parser.add_argument("load_ck",type=bool,default=True)
-parser.add_argument("test",type=bool,default=False)
-args = parser.parse_args()
+epoch_index = int(redis_conn.get('deepix_epoch_index'))
+
 
 
 
