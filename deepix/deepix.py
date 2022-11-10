@@ -12,8 +12,10 @@ def create_acg2vec_pixiv_predict_model(pretrained_model_path):
     sanity_predict = _output_layer(x, 'sanity_predict', 10, 'softmax')
     restrict_predict = _output_layer(x, 'restrict_predict', 3, 'softmax')
     x_restrict_predict = _output_layer(x, 'x_restrict_predict', 3, 'softmax')
-    tag_predict = _output_layer(x, 'tag_predict', 10240, 'sigmoid')
-    output = [bookmark_predict, view_predict, sanity_predict, restrict_predict, x_restrict_predict, tag_predict]
+    #tag_predict = _output_layer(x, 'tag_predict', 10240, 'sigmoid')
+    output = [bookmark_predict, view_predict, sanity_predict, restrict_predict, x_restrict_predict,
+              #tag_predict
+              ]
     # Create model.
     model = models.Model(inputs=deepdanbooru_pretrained_model.input,  outputs=output, name='acg2vec_pixiv_predict')
 
@@ -28,7 +30,7 @@ def load_deepdanbooru_pretrained_model(path):
 
 
 def _output_layer(x, output_name, output_dim, output_activation):
-    x = stack2(x, 512, 6, stride1=1, name=output_name + '_conv5')
+    x = stack2(x, 512, 3, stride1=1, name=output_name + '_conv5')
     x = layers.GlobalAveragePooling2D(name=output_name + '_avg_pool')(x)
     x = layers.Dense(output_dim, activation=output_activation, name=output_name)(x)
     return x
