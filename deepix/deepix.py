@@ -2,12 +2,14 @@ import tensorflow as tf
 from keras import backend
 from keras import layers
 from keras import models
-
+from tensorflow.keras import mixed_precision
+policy = mixed_precision.Policy('mixed_float16')
+mixed_precision.set_global_policy(policy)
 
 def create_acg2vec_pixiv_predict_model(pretrained_model_path):
     deepdanbooru_pretrained_model = load_deepdanbooru_pretrained_model(pretrained_model_path)
     x = deepdanbooru_pretrained_model.output
-    x = stack2(x, 512, 6, stride1=1, name= 'deepix_conv5')
+    x = stack2(x, 512, 10, stride1=1, name= 'deepix_conv5')
     x = layers.GlobalAveragePooling2D(name='deepix_avg_pool')(x)
     bookmark_predict = _output_layer(x, 'bookmark_predict', 10, 'softmax')
     view_predict = _output_layer(x, 'view_predict', 10, 'softmax')
@@ -25,7 +27,7 @@ def create_acg2vec_pixiv_predict_model(pretrained_model_path):
 
 
 def load_deepdanbooru_pretrained_model(path):
-    deepdanbooru_pretrained_model = tf.keras.models.load_model(path)
+    deepdanbooru_pretrained_model = tf.keras.models.load_model(path,compile=False)
     outputs = deepdanbooru_pretrained_model.get_layer('activation_96').output
     feature_extract_model = tf.keras.Model(inputs=deepdanbooru_pretrained_model.input, outputs=outputs)
     return feature_extract_model
@@ -33,7 +35,7 @@ def load_deepdanbooru_pretrained_model(path):
 
 def _output_layer(x, output_name, output_dim, output_activation):
     #x = layers.GlobalAveragePooling2D(name=output_name + '_avg_pool')(x)
-    x = layers.Dense(output_dim, activation=output_activation, name=output_name)(x)
+    x = layers.Dense(output_dim, activation=output_activation, name=output_name, dtype="float32")(x)
     return x
 
 

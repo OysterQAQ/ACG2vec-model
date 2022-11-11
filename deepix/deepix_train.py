@@ -144,7 +144,7 @@ epoch_index = 0 if redis_conn.get(redis_epoch_key) is None else int(redis_conn.g
 
 
 model = build_model(model_config)
-ouput_model_arch_to_image(model,'deepix.jpg')
+#ouput_model_arch_to_image(model,'deepix.jpg')
 # model.save('/Volumes/Data/oysterqaq/Desktop/deepix.h5')
 
 
@@ -162,9 +162,9 @@ model.fit(dataset, epochs=epoch, steps_per_epoch=None, callbacks=[
     # tf.keras.callbacks.LambdaCallback(on_batch_end=batch_metric_to_tensorboard),
     # tf.keras.callbacks.LearningRateScheduler(scheduler),
     tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_path, verbose=0, save_weights_only=True,
-                                       save_freq=50 * batch_size),
+                                       save_freq=100 * batch_size),
     # tf.keras.callbacks.TensorBoard(log_dir=log_dir, update_freq=tensorBoard_update_freq),
-    tf.keras.callbacks.TensorBoard(log_dir=log_dir),
+    #tf.keras.callbacks.TensorBoard(log_dir=log_dir),
     # tf.keras.callbacks.LambdaCallback(on_epoch_end=save_h5model_each_epoch),
     tf.keras.callbacks.ModelCheckpoint(save_weight_history_path + '/{epoch:08d}.h5',
                                        period=1, save_freq='epoch', save_weights_only=True)

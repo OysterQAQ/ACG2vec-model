@@ -27,10 +27,10 @@ from deepix_data
 where illust_id < %s  order by illust_id desc limit %s 
 '''
 engine = sqlalchemy.create_engine('mysql+pymysql://root:Cheerfun.dev@local.ipv4.host:3306/deepix?charset=utf8')
-offset = 64000
+offset = 160000
 httpclient = urllib3.PoolManager()
 min_deepix_train_index = 20000000
-max_deepix_train_index = 90000000
+max_deepix_train_index = 80000000
 
 
 # deepix_train_index = 50000000
@@ -87,7 +87,7 @@ def load_and_preprocess_image_from_url(url):
         image = tf.io.decode_image(
             httpclient.request('GET', bytes.decode(url.numpy()).replace('10.0.0.5', 'local.ipv4.host')).data,
             channels=3)
-        image = tf.image.resize(image, [299, 299])
+        image = tf.image.resize(image, [512, 512])
         image /= 255.0
         return image
     except Exception as e:
@@ -98,7 +98,7 @@ def load_and_preprocess_image_from_url_py(url):
         image = tf.io.decode_image(
             httpclient.request('GET', url.replace('10.0.0.5', 'local.ipv4.host')).data,
             channels=3)
-        image = tf.image.resize(image, [299, 299])
+        image = tf.image.resize(image, [512, 512])
         image /= 255.0
         return image
     except Exception as e:
