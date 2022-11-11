@@ -7,6 +7,8 @@ from keras import models
 def create_acg2vec_pixiv_predict_model(pretrained_model_path):
     deepdanbooru_pretrained_model = load_deepdanbooru_pretrained_model(pretrained_model_path)
     x = deepdanbooru_pretrained_model.output
+    x = stack2(x, 512, 6, stride1=1, name= 'deepix_conv5')
+    x = layers.GlobalAveragePooling2D(name='deepix_avg_pool')(x)
     bookmark_predict = _output_layer(x, 'bookmark_predict', 10, 'softmax')
     view_predict = _output_layer(x, 'view_predict', 10, 'softmax')
     sanity_predict = _output_layer(x, 'sanity_predict', 10, 'softmax')
@@ -30,8 +32,7 @@ def load_deepdanbooru_pretrained_model(path):
 
 
 def _output_layer(x, output_name, output_dim, output_activation):
-    x = stack2(x, 512, 3, stride1=1, name=output_name + '_conv5')
-    x = layers.GlobalAveragePooling2D(name=output_name + '_avg_pool')(x)
+    #x = layers.GlobalAveragePooling2D(name=output_name + '_avg_pool')(x)
     x = layers.Dense(output_dim, activation=output_activation, name=output_name)(x)
     return x
 

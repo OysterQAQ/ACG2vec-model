@@ -27,7 +27,7 @@ from deepix_data
 where illust_id < %s  order by illust_id desc limit %s 
 '''
 engine = sqlalchemy.create_engine('mysql+pymysql://root:Cheerfun.dev@local.ipv4.host:3306/deepix?charset=utf8')
-offset = 640
+offset = 64000
 httpclient = urllib3.PoolManager()
 min_deepix_train_index = 20000000
 max_deepix_train_index = 90000000
@@ -36,7 +36,7 @@ max_deepix_train_index = 90000000
 # deepix_train_index = 50000000
 def generate_data_from_db():
     #deepix_train_index = int(redis_conn.get(redis_index_key))
-    deepix_train_index = max_deepix_train_index if redis_conn.get(redis_index_key) !=None else int(redis_conn.get(redis_index_key))
+    deepix_train_index = max_deepix_train_index if redis_conn.get(redis_index_key)  is None else int(redis_conn.get(redis_index_key))
     if (deepix_train_index < min_deepix_train_index):
         deepix_train_index = max_deepix_train_index
         redis_conn.set(redis_index_key, deepix_train_index)

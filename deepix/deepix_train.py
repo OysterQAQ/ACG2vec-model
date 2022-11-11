@@ -28,10 +28,10 @@ def batch_metric_to_tensorboard(batch, logs):
     tf.summary.scalar('sanity_predict_acc', data=logs['sanity_predict_acc'], step=batch)
     tf.summary.scalar('restrict_predict_acc', data=logs['restrict_predict_acc'], step=batch)
     tf.summary.scalar('x_restrict_predict_acc', data=logs['x_restrict_predict_acc'], step=batch)
-    tf.summary.scalar('tag_predict_acc', data=logs['tag_predict_acc'], step=batch)
-    tf.summary.scalar('tag_predict_recall', data=logs['tag_predict_recall'], step=batch)
-    tf.summary.scalar('tag_predict_precision', data=logs['tag_predict_precision'], step=batch)
-    tf.summary.scalar('tag_predict_f1_score', data=logs['tag_predict_f1_score'], step=batch)
+    #tf.summary.scalar('tag_predict_acc', data=logs['tag_predict_acc'], step=batch)
+    #tf.summary.scalar('tag_predict_recall', data=logs['tag_predict_recall'], step=batch)
+    #tf.summary.scalar('tag_predict_precision', data=logs['tag_predict_precision'], step=batch)
+    #tf.summary.scalar('tag_predict_f1_score', data=logs['tag_predict_f1_score'], step=batch)
     return batch
 
 
@@ -55,8 +55,8 @@ def build_model(model_config):
                   'view_predict': tf.keras.losses.CategoricalCrossentropy(),
                   'sanity_predict': tf.keras.losses.CategoricalCrossentropy(),
                   'restrict_predict': tf.keras.losses.CategoricalCrossentropy(),
-                  'x_restrict_predict': tf.keras.losses.CategoricalCrossentropy(), 'tag_predict':
-                      model_config['tag_predict_loss_function']
+                  'x_restrict_predict': tf.keras.losses.CategoricalCrossentropy(),
+                  #'tag_predict':model_config['tag_predict_loss_function']
                   # 'binary_focal_crossentropy'
                   #    'binary_crossentropy'
                   # tfa.losses.SigmoidFocalCrossEntropy()
@@ -66,7 +66,8 @@ def build_model(model_config):
                      'sanity_predict': [tf.keras.metrics.AUC(name='auc'), tf.keras.metrics.Recall(name='recall'), tf.keras.metrics.Precision(name='precision')],
                      'restrict_predict': [tf.keras.metrics.AUC(name='auc')],
                      'x_restrict_predict': [tf.keras.metrics.AUC(name='auc')],
-                     'tag_predict': [tf.keras.metrics.AUC(num_labels=10240,multi_label=True,name='auc'), tf.keras.metrics.Recall(name='recall'), tf.keras.metrics.Precision(name='precision')]}
+                     #'tag_predict': [tf.keras.metrics.AUC(num_labels=10240,multi_label=True,name='auc'), tf.keras.metrics.Recall(name='recall'), tf.keras.metrics.Precision(name='precision')]
+                     }
 
     model = create_acg2vec_pixiv_predict_model(model_config['pretrained_model_path'])
     if model_config['optimizer_type'] == 'adam':
@@ -135,14 +136,15 @@ tensorBoard_update_freq = 'batch'
 epoch = 100
 #resume_flag = True
 # epoch数目
-epoch_index = int(redis_conn.get('deepix_epoch_index'))
+redis_epoch_key='deepix_epoch_index'
+epoch_index = 0 if redis_conn.get(redis_epoch_key) is None else int(redis_conn.get(redis_epoch_key))
 
 
 
 
 
 model = build_model(model_config)
-#ouput_model_arch_to_image(model,'deepix.jpg')
+ouput_model_arch_to_image(model,'deepix.jpg')
 # model.save('/Volumes/Data/oysterqaq/Desktop/deepix.h5')
 
 

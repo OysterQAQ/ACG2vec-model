@@ -1,9 +1,9 @@
 {
 	"optimizer_type": "multi",
-	"batch_size": 60,
+	"batch_size": 64,
 	"multi_optimizer_config": [
 		{
-			"layer_keyword": "tag",
+			"layer_keyword": "deepix",
 			"learning_rate": 0.01
 		},
 		{
@@ -28,7 +28,7 @@
 		}
 	],
 	"learning_rate": 0.0001,
-	"loss_weights": [1,1,1,1,1,2000],
+	"loss_weights": null,
 	"tag_predict_loss_function": "binary_focal_crossentropy",
 	"pretrained_model_path": "model-resnet_custom_v3.h5"
 }

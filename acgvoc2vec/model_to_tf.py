@@ -70,7 +70,7 @@ def pytorch_to_tensorflow_dense_layer(dense_model: sentence_transformers.models.
     )
 
 
-model_name = 'acg_sentence-transformers'
+model_name = '/Volumes/Data/oysterqaq/Desktop/ACGVoc2vec-2022-11-11-20epoch'
 max_seq_length = 128
 output_dimension = 512
 
@@ -101,7 +101,7 @@ print(tf_tokens)
 
 import numpy as np
 
-np.isclose(tf_model(tf_tokens).numpy(),
+print(np.isclose(tf_model(tf_tokens).numpy(),
            model.encode(input_text),
-           atol=1e-5).all()
-tf_model.save(model_name + "-pt")
+           atol=1e-5).all())
+tf_model.save(model_name + "-tf")
