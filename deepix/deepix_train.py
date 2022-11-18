@@ -61,11 +61,11 @@ def build_model(model_config):
                   #    'binary_crossentropy'
                   # tfa.losses.SigmoidFocalCrossEntropy()
                   }
-    multi_metrics = {'bookmark_predict': [tf.keras.metrics.AUC(name='auc'), tf.keras.metrics.Recall(name='recall'), tf.keras.metrics.Precision(name='precision')],
-                     'view_predict': [tf.keras.metrics.AUC(name='auc'), tf.keras.metrics.Recall(name='recall'), tf.keras.metrics.Precision(name='precision')],
-                     'sanity_predict': [tf.keras.metrics.AUC(name='auc'), tf.keras.metrics.Recall(name='recall'), tf.keras.metrics.Precision(name='precision')],
-                     'restrict_predict': [tf.keras.metrics.AUC(name='auc')],
-                     'x_restrict_predict': [tf.keras.metrics.AUC(name='auc')],
+    multi_metrics = {'bookmark_predict': ['acc',tfa.metrics.F1Score(name='f1',num_classes=10)],
+                     'view_predict': ['acc',tfa.metrics.F1Score(name='f1',num_classes=10)],
+                     'sanity_predict': ['acc',tfa.metrics.F1Score(name='f1',num_classes=10)],
+                     'restrict_predict': [tfa.metrics.F1Score(name='f1',num_classes=3)],
+                     'x_restrict_predict': [tfa.metrics.F1Score(name='f1',num_classes=3)],
                      #'tag_predict': [tf.keras.metrics.AUC(num_labels=10240,multi_label=True,name='auc'), tf.keras.metrics.Recall(name='recall'), tf.keras.metrics.Precision(name='precision')]
                      }
 
