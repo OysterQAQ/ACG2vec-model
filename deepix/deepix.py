@@ -77,3 +77,5 @@ def stack2(x, filters, blocks, stride1=2, name=None):
         x = block2(x, filters, name=name + '_block' + str(i))
     x = block2(x, filters, stride=stride1, name=name + '_block' + str(blocks))
     return x
+
+
