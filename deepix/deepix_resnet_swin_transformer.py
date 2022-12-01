@@ -630,7 +630,7 @@ def SwinTransformer(model_name='swin_tiny_224', num_classes=1000, include_top=Tr
 #
 # model.save('/Volumes/Data/oysterqaq/Desktop/2.h5')
 
-# model=test('model-resnet_custom_v3.h5')
+# model=create_swin_deepix('model-resnet_custom_v3.h5')
 # input_shape = (4, 512, 512, 3)
 # model.build([1, 512, 512, 3])
 # x = tf.random.normal(input_shape)

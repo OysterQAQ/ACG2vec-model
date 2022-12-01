@@ -8,7 +8,7 @@ from tensorflow.keras import mixed_precision
 import argparse
 
 from deepix_resnet_swin_transformer import create_swin_deepix
-from dataset_generator import build_dataset
+from swin_dataset_generator import build_dataset
 from utils import ouput_model_arch_to_image
 
 policy = mixed_precision.Policy('mixed_float16')
@@ -136,7 +136,7 @@ tensorBoard_update_freq = 'batch'
 epoch = 100
 #resume_flag = True
 # epoch数目
-redis_epoch_key='deepix_epoch_index'
+redis_epoch_key='deepix_swin_epoch_index'
 epoch_index = 0 if redis_conn.get(redis_epoch_key) is None else int(redis_conn.get(redis_epoch_key))
 
 
