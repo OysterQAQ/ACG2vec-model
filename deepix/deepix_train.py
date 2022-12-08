@@ -72,6 +72,8 @@ def build_model(model_config):
     model = create_acg2vec_pixiv_predict_model(model_config['pretrained_model_path'])
     if model_config['optimizer_type'] == 'adam':
         optimizer = tf.keras.optimizers.Adam(learning_rate=model_config['learning_rate'])
+    if model_config['optimizer_type'] == 'sgd':
+        optimizer = tf.optimizers.SGD(model_config['learning_rate'], momentum=0.9, nesterov=True)
     else:
         multi_optimizer_config = model_config['multi_optimizer_config']
         custom_layers_index = []
@@ -79,12 +81,32 @@ def build_model(model_config):
         other_layers_opt = None
         for config in multi_optimizer_config:
             if config['layer_keyword'] == 'other':
-                other_layers_opt = tf.keras.optimizers.Adam(config['learning_rate'])
+                if config['optimizer'] == 'sgd':
+                    other_layers_opt=tf.optimizers.SGD(config['learning_rate'], momentum=0.9, nesterov=True)
+                if config['optimizer'] == 'adam':
+                    other_layers_opt=tf.keras.optimizers.Adam(config['learning_rate'])
+                #other_layers_opt = tf.keras.optimizers.Adam(config['learning_rate'])
             else:
                 layers_index = get_layer_index_by_name(model, config['layer_keyword'])
                 layers = [layer for i, layer in enumerate(model.layers) if
                           i in layers_index]
-                optimizers_and_layers.append((tf.optimizers.SGD(config['learning_rate'], momentum=0.9, nesterov=True), layers))
+                if config['optimizer'] == 'sgd':
+                    optimizers_and_layers.append(
+                        (tf.optimizers.SGD(config['learning_rate'], momentum=0.9, nesterov=True), layers))
+                if config['optimizer'] == 'adam':
+                    optimizers_and_layers.append(
+                        (tf.keras.optimizers.Adam(config['learning_rate']), layers))
+                if config['optimizer'] == 'adamW':
+                    step = tf.Variable(0, trainable=False)
+                    schedule = tf.optimizers.schedules.PiecewiseConstantDecay(
+                        [10000, 15000], [1e-0, 1e-1, 1e-2])
+                    # lr and wd can be a function or a tensor
+                    lr = config['learning_rate'] * schedule(step)
+                    wd = lambda: 1e-4 * schedule(step)
+                    # optimizer = tfa.optimizers.AdamW(learning_rate=lr, weight_decay=wd)
+                    optimizers_and_layers.append(
+                        (tfa.optimizers.AdamW(learning_rate=lr, weight_decay=wd), layers))
+
                 custom_layers_index += layers_index
 
         optimizers_and_layers.append((other_layers_opt, [layer for i, layer in enumerate(model.layers) if

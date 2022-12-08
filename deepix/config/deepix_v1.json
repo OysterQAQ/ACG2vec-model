@@ -4,31 +4,37 @@
 	"multi_optimizer_config": [
 		{
 			"layer_keyword": "deepix",
-			"learning_rate": 0.01
+			"optimizer": "adam",
+			"learning_rate": 0.0001
 		},
 		{
 			"layer_keyword": "bookmark",
-			"learning_rate": 0.01
+			"optimizer": "adam",
+			"learning_rate": 0.0001
 		},
 		{
 			"layer_keyword": "view",
-			"learning_rate": 0.01
+			"optimizer": "adam",
+			"learning_rate": 0.0001
 		},
 		{
 			"layer_keyword": "restrict",
-			"learning_rate": 0.01
+			"optimizer": "adam",
+			"learning_rate": 0.000001
 		},
 		{
 			"layer_keyword": "sanity",
-			"learning_rate": 0.01
+			"optimizer": "adam",
+			"learning_rate": 0.000001
 		},
 		{
 			"layer_keyword": "other",
-			"learning_rate": 0.00001
+			"optimizer": "adam",
+			"learning_rate": 0.000001
 		}
 	],
 	"learning_rate": 0.0001,
-	"loss_weights": null,
+	"loss_weights": [1,1,0,0,0],
 	"tag_predict_loss_function": "binary_focal_crossentropy",
 	"pretrained_model_path": "model-resnet_custom_v3_float16.h5"
 }

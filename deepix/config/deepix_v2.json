@@ -1,34 +1,40 @@
 {
-	"optimizer_type": "multi",
-	"batch_size": 16,
-	"multi_optimizer_config": [
-		{
-			"layer_keyword": "deepix",
-			"learning_rate": 0.01
-		},
-		{
-			"layer_keyword": "bookmark",
-			"learning_rate": 0.01
-		},
-		{
-			"layer_keyword": "view",
-			"learning_rate": 0.01
-		},
-		{
-			"layer_keyword": "restrict",
-			"learning_rate": 0.01
-		},
-		{
-			"layer_keyword": "sanity",
-			"learning_rate": 0.01
-		},
-		{
-			"layer_keyword": "other",
-			"learning_rate": 0.00001
-		}
-	],
-	"learning_rate": 0.0001,
-	"loss_weights": null,
-	"tag_predict_loss_function": "binary_focal_crossentropy",
-	"pretrained_model_path": "model-resnet_custom_v3_float16.h5"
+  "optimizer_type": "multi",
+  "batch_size": 16,
+  "multi_optimizer_config": [
+    {
+      "layer_keyword": "deepix",
+      "optimizer": "adamW",
+      "learning_rate": 0.01
+    },
+    {
+      "layer_keyword": "bookmark",
+      "optimizer": "adamW",
+      "learning_rate": 0.01
+    },
+    {
+      "layer_keyword": "view",
+      "optimizer": "adamW",
+      "learning_rate": 0.01
+    },
+    {
+      "layer_keyword": "restrict",
+      "optimizer": "adamW",
+      "learning_rate": 0.01
+    },
+    {
+      "layer_keyword": "sanity",
+      "optimizer": "adamW",
+      "learning_rate": 0.01
+    },
+    {
+      "layer_keyword": "other",
+      "optimizer": "sgd",
+      "learning_rate": 0.00001
+    }
+  ],
+  "learning_rate": 0.0001,
+  "loss_weights": null,
+  "tag_predict_loss_function": "binary_focal_crossentropy",
+  "pretrained_model_path": "model-resnet_custom_v3_float16.h5"
 }

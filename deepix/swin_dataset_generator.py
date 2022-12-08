@@ -27,10 +27,10 @@ from deepix_data
 where illust_id < %s  order by illust_id desc limit %s 
 '''
 engine = sqlalchemy.create_engine('mysql+pymysql://root:Cheerfun.dev@local.ipv4.host:3306/deepix?charset=utf8')
-offset = 160
+offset = 160000
 httpclient = urllib3.PoolManager()
-min_deepix_train_index = 20000000
-max_deepix_train_index = 80000000
+min_deepix_train_index = 60000000
+max_deepix_train_index = 65000000
 
 
 # deepix_train_index = 50000000
