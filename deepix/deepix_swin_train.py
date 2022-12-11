@@ -128,6 +128,8 @@ def str2bool(v):
 parser = argparse.ArgumentParser()
 parser.add_argument("--load_ck",type=str2bool,default=True)
 parser.add_argument("--test",type=str2bool,default=False)
+parser.add_argument("--ck",type=str2bool,default=False)
+
 parser.add_argument("--config_name",type=str,default='deepix_v1')
 args = parser.parse_args()
 print(args.load_ck)

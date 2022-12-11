@@ -1,6 +1,7 @@
 {
 	"optimizer_type": "multi",
 	"batch_size": 16,
+	"model_name": "deepix_v1",
 	"multi_optimizer_config": [
 		{
 			"layer_keyword": "deepix",

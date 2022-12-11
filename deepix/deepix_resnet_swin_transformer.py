@@ -404,7 +404,7 @@ class BasicLayer(tf.keras.layers.Layer):
         self._name=name
 
         # build blocks
-        print('SwinTransformerBlock_input' + str(dim) + ' ' + str(input_resolution))
+        #print('SwinTransformerBlock_input' + str(dim) + ' ' + str(input_resolution))
         self.blocks = tf.keras.Sequential([SwinTransformerBlock(dim=dim, input_resolution=input_resolution,
                                                                 num_heads=num_heads, window_size=window_size,
                                                                 shift_size=0 if (
@@ -423,10 +423,10 @@ class BasicLayer(tf.keras.layers.Layer):
             self.downsample = None
 
     def build(self, input_shape):
-        print(input_shape[-1])
-        print(input_shape[-2])
+        #print(input_shape[-1])
+        #print(input_shape[-2])
         self.dim=input_shape[-1]
-        print(tf.math.sqrt(tf.cast(input_shape[-2], dtype=tf.float32)))
+        #print(tf.math.sqrt(tf.cast(input_shape[-2], dtype=tf.float32)))
         # self.dim = dim
         # self.input_resolution = input_resolution
 

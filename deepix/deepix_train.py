@@ -1,3 +1,4 @@
+import argparse
 import json
 import os
 
@@ -5,12 +6,11 @@ import redis
 import tensorflow as tf
 import tensorflow_addons as tfa
 from tensorflow.keras import mixed_precision
-import argparse
 
-from deepix import create_acg2vec_pixiv_predict_model
 from dataset_generator import build_dataset
-from utils import ouput_model_arch_to_image
-
+from dataset_generator_for_test import build_dataset_for_test
+from deepix import create_acg2vec_pixiv_predict_model
+from deepix_resnet_swin_transformer import create_swin_deepix
 policy = mixed_precision.Policy('mixed_float16')
 mixed_precision.set_global_policy(policy)
 
@@ -22,16 +22,16 @@ def batch_metric_to_tensorboard(batch, logs):
     tf.summary.scalar('sanity_predict_loss', data=logs['sanity_predict_loss'], step=batch)
     tf.summary.scalar('restrict_predict_loss', data=logs['restrict_predict_loss'], step=batch)
     tf.summary.scalar('x_restrict_predict_loss', data=logs['x_restrict_predict_loss'], step=batch)
-    tf.summary.scalar('tag_predict_loss', data=logs['tag_predict_loss'], step=batch)
+    # tf.summary.scalar('tag_predict_loss', data=logs['tag_predict_loss'], step=batch)
     tf.summary.scalar('bookmark_predict_acc', data=logs['bookmark_predict_acc'], step=batch)
     tf.summary.scalar('view_predict_acc', data=logs['view_predict_acc'], step=batch)
     tf.summary.scalar('sanity_predict_acc', data=logs['sanity_predict_acc'], step=batch)
     tf.summary.scalar('restrict_predict_acc', data=logs['restrict_predict_acc'], step=batch)
     tf.summary.scalar('x_restrict_predict_acc', data=logs['x_restrict_predict_acc'], step=batch)
-    #tf.summary.scalar('tag_predict_acc', data=logs['tag_predict_acc'], step=batch)
-    #tf.summary.scalar('tag_predict_recall', data=logs['tag_predict_recall'], step=batch)
-    #tf.summary.scalar('tag_predict_precision', data=logs['tag_predict_precision'], step=batch)
-    #tf.summary.scalar('tag_predict_f1_score', data=logs['tag_predict_f1_score'], step=batch)
+    # tf.summary.scalar('tag_predict_acc', data=logs['tag_predict_acc'], step=batch)
+    # tf.summary.scalar('tag_predict_recall', data=logs['tag_predict_recall'], step=batch)
+    # tf.summary.scalar('tag_predict_precision', data=logs['tag_predict_precision'], step=batch)
+    # tf.summary.scalar('tag_predict_f1_score', data=logs['tag_predict_f1_score'], step=batch)
     return batch
 
 
@@ -56,23 +56,25 @@ def build_model(model_config):
                   'sanity_predict': tf.keras.losses.CategoricalCrossentropy(),
                   'restrict_predict': tf.keras.losses.CategoricalCrossentropy(),
                   'x_restrict_predict': tf.keras.losses.CategoricalCrossentropy(),
-                  #'tag_predict':model_config['tag_predict_loss_function']
+                  # 'tag_predict':model_config['tag_predict_loss_function']
                   # 'binary_focal_crossentropy'
                   #    'binary_crossentropy'
                   # tfa.losses.SigmoidFocalCrossEntropy()
                   }
-    multi_metrics = {'bookmark_predict': ['acc',tfa.metrics.F1Score(name='f1',num_classes=10)],
-                     'view_predict': ['acc',tfa.metrics.F1Score(name='f1',num_classes=10)],
-                     'sanity_predict': ['acc',tfa.metrics.F1Score(name='f1',num_classes=10)],
-                     'restrict_predict': [tfa.metrics.F1Score(name='f1',num_classes=3)],
-                     'x_restrict_predict': [tfa.metrics.F1Score(name='f1',num_classes=3)],
-                     #'tag_predict': [tf.keras.metrics.AUC(num_labels=10240,multi_label=True,name='auc'), tf.keras.metrics.Recall(name='recall'), tf.keras.metrics.Precision(name='precision')]
+    multi_metrics = {'bookmark_predict': ['acc', tfa.metrics.F1Score(name='f1', num_classes=10)],
+                     'view_predict': ['acc', tfa.metrics.F1Score(name='f1', num_classes=10)],
+                     'sanity_predict': ['acc', tfa.metrics.F1Score(name='f1', num_classes=10)],
+                     'restrict_predict': [tfa.metrics.F1Score(name='f1', num_classes=3)],
+                     'x_restrict_predict': [tfa.metrics.F1Score(name='f1', num_classes=3)],
+                     # 'tag_predict': [tf.keras.metrics.AUC(num_labels=10240,multi_label=True,name='auc'), tf.keras.metrics.Recall(name='recall'), tf.keras.metrics.Precision(name='precision')]
                      }
-
-    model = create_acg2vec_pixiv_predict_model(model_config['pretrained_model_path'])
+    if model_config['model_name'] =='deepix_v1':
+        model = create_acg2vec_pixiv_predict_model(model_config['pretrained_model_path'])
+    if model_config['model_name'] =='deepix_v2':
+        model =create_swin_deepix(model_config['pretrained_model_path'])
     if model_config['optimizer_type'] == 'adam':
         optimizer = tf.keras.optimizers.Adam(learning_rate=model_config['learning_rate'])
-    if model_config['optimizer_type'] == 'sgd':
+    elif model_config['optimizer_type'] == 'sgd':
         optimizer = tf.optimizers.SGD(model_config['learning_rate'], momentum=0.9, nesterov=True)
     else:
         multi_optimizer_config = model_config['multi_optimizer_config']
@@ -82,10 +84,10 @@ def build_model(model_config):
         for config in multi_optimizer_config:
             if config['layer_keyword'] == 'other':
                 if config['optimizer'] == 'sgd':
-                    other_layers_opt=tf.optimizers.SGD(config['learning_rate'], momentum=0.9, nesterov=True)
+                    other_layers_opt = tf.optimizers.SGD(config['learning_rate'], momentum=0.9, nesterov=True)
                 if config['optimizer'] == 'adam':
-                    other_layers_opt=tf.keras.optimizers.Adam(config['learning_rate'])
-                #other_layers_opt = tf.keras.optimizers.Adam(config['learning_rate'])
+                    other_layers_opt = tf.keras.optimizers.Adam(config['learning_rate'])
+                # other_layers_opt = tf.keras.optimizers.Adam(config['learning_rate'])
             else:
                 layers_index = get_layer_index_by_name(model, config['layer_keyword'])
                 layers = [layer for i, layer in enumerate(model.layers) if
@@ -124,7 +126,7 @@ def build_model(model_config):
     return model
 
 
-#命令行参数
+# 命令行参数
 def str2bool(v):
     if isinstance(v, bool):
         return v
@@ -134,10 +136,15 @@ def str2bool(v):
         return False
     else:
         raise argparse.ArgumentTypeError('Boolean value expected.')
+
+
 parser = argparse.ArgumentParser()
-parser.add_argument("--load_ck",type=str2bool,default=True)
-parser.add_argument("--test",type=str2bool,default=False)
-parser.add_argument("--config_name",type=str,default='deepix_v1')
+parser.add_argument("--load_ck", type=str2bool, default=True)
+parser.add_argument("--test", type=str2bool, default=False)
+parser.add_argument("--config_name", type=str, default='deepix_v1')
+parser.add_argument("--ck",type=str2bool,default=False)
+parser.add_argument("--h5",type=str2bool,default=False)
+
 args = parser.parse_args()
 print(args.load_ck)
 # 初始化redis连接
@@ -156,17 +163,13 @@ log_dir = "logs/fit/" + config_name
 batch_size = model_config['batch_size']
 tensorBoard_update_freq = 'batch'
 epoch = 100
-#resume_flag = True
+# resume_flag = True
 # epoch数目
-redis_epoch_key='deepix_epoch_index'
+redis_epoch_key = 'deepix_epoch_index'
 epoch_index = 0 if redis_conn.get(redis_epoch_key) is None else int(redis_conn.get(redis_epoch_key))
 
-
-
-
-
 model = build_model(model_config)
-#ouput_model_arch_to_image(model,'deepix.jpg')
+# ouput_model_arch_to_image(model,'deepix.jpg')
 # model.save('/Volumes/Data/oysterqaq/Desktop/deepix.h5')
 
 
@@ -175,19 +178,25 @@ if args.load_ck:
     checkpoint_dir = os.path.dirname(checkpoint_path)
     latest = tf.train.latest_checkpoint(checkpoint_dir)
     model.load_weights(latest)
-    print('加载历史权重完成'+latest)
-
-dataset = build_dataset(batch_size,args.test)
-
-#model.summary()
-model.fit(dataset, epochs=epoch, steps_per_epoch=None, callbacks=[
-    # tf.keras.callbacks.LambdaCallback(on_batch_end=batch_metric_to_tensorboard),
-    # tf.keras.callbacks.LearningRateScheduler(scheduler),
-    tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_path, verbose=0, save_weights_only=True,
+    print('加载历史权重完成' + latest)
+if args.test:
+    dataset = build_dataset_for_test(60000000, 640000, batch_size)
+else:
+    dataset = build_dataset(batch_size)
+callbacks=[]
+if args.test:
+    callbacks.append(tf.keras.callbacks.TensorBoard(log_dir=log_dir, update_freq=tensorBoard_update_freq))
+if args.ck:
+    callbacks.append([tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_path, verbose=0, save_weights_only=True,
                                        save_freq=100 * batch_size),
-    # tf.keras.callbacks.TensorBoard(log_dir=log_dir, update_freq=tensorBoard_update_freq),
-    #tf.keras.callbacks.TensorBoard(log_dir=log_dir),
-    # tf.keras.callbacks.LambdaCallback(on_epoch_end=save_h5model_each_epoch),
-    tf.keras.callbacks.ModelCheckpoint(save_weight_history_path + '/{epoch:08d}.h5',
-                                       period=1, save_freq='epoch', save_weights_only=True)
-], initial_epoch=epoch_index)
+
+                      # tf.keras.callbacks.LambdaCallback(on_batch_end=batch_metric_to_tensorboard),
+                      # tf.keras.callbacks.TensorBoard(log_dir=log_dir),
+                      # tf.keras.callbacks.LambdaCallback(on_epoch_end=save_h5model_each_epoch),
+                      ])
+if args.h5:
+    callbacks.append([tf.keras.callbacks.ModelCheckpoint(save_weight_history_path + '/{epoch:08d}.h5',
+                                                         period=1, save_freq='epoch', save_weights_only=True)])
+# model.summary()
+model.fit(dataset, epochs=epoch, steps_per_epoch=None, callbacks=callbacks, initial_epoch=epoch_index if (
+    not args.test) else 0)

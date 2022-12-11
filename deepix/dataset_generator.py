@@ -35,7 +35,6 @@ max_deepix_train_index = 80000000
 
 # deepix_train_index = 50000000
 def generate_data_from_db():
-    #deepix_train_index = int(redis_conn.get(redis_index_key))
     deepix_train_index = max_deepix_train_index if redis_conn.get(redis_index_key)  is None else int(redis_conn.get(redis_index_key))
     if (deepix_train_index < min_deepix_train_index):
         deepix_train_index = max_deepix_train_index
@@ -66,6 +65,9 @@ def generate_data_from_db():
                 #"tag_predict": label_str_to_tensor_py(label)
             }
         del data_from_db
+
+
+def dataframe_deal():
 
 
 def label_str_to_tensor(labelStr):
@@ -144,11 +146,11 @@ def map_img_and_label(x, y):
 
 
 def build_dataset(batch_size,test=False):
-    if test:
-        global min_deepix_train_index
-        min_deepix_train_index = 60000000
-        global  max_deepix_train_index
-        max_deepix_train_index = 70000000
+    # if test:
+    #     global min_deepix_train_index
+    #     min_deepix_train_index = 60000000
+    #     global  max_deepix_train_index
+    #     max_deepix_train_index = 70000000
 
     dataset = tf.data.Dataset.from_generator(generate_data_from_db,
                                              output_types=(
