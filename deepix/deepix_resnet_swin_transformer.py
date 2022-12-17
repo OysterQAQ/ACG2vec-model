@@ -2,14 +2,13 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.keras import Model, layers, models
 from tensorflow.keras.layers import Dense, Dropout, Conv2D, LayerNormalization, GlobalAveragePooling1D
-from utils import ouput_model_arch_to_image
 
 CFGS = {
     'swin_tiny_224': dict(input_size=(224, 224), window_size=7, embed_dim=96, depths=[2, 2, 6, 2],
                           num_heads=[3, 6, 12, 24]),
     'swin_small_224': dict(input_size=(224, 224), window_size=7, embed_dim=96, depths=[2, 2, 18, 2],
                            num_heads=[3, 6, 12, 24]),
-    'swin_base_224': dict(input_size=(512, 512), window_size=8, embed_dim=128, depths=[2, 2, 18, 2],
+    'swin_base_224': dict(input_size=(224, 224), window_size=7, embed_dim=128, depths=[2, 2, 18, 2],
                           num_heads=[4, 8, 16, 32]),
     'swin_base_384': dict(input_size=(384, 384), window_size=12, embed_dim=128, depths=[2, 2, 18, 2],
                           num_heads=[4, 8, 16, 32]),
@@ -38,7 +37,7 @@ class deepix(Model):
                                 downsample=None,
 
                                 prefix='11'
-                             #   , name='deepix_swin_basic_layer'
+                                #   , name='deepix_swin_basic_layer'
                                 )
         self.norm = layers.LayerNormalization(epsilon=1e-6, name="deepix_norm")
         self.bookmark_predict = self._output_layer('bookmark_predict', 10, 'softmax')
@@ -77,11 +76,11 @@ def create_swin_deepix(path):
     deepdanbooru = load_deepdanbooru_pretrained_model(path)
     depths = [6, 2]
     num_heads = [16, 32]
-    window_sizes = [8,8]
-    num_layers=2
-    embed_dim=1024
-    patches_resolution=(16,16)
-    mlp_ratio=2
+    window_sizes = [8, 8]
+    num_layers = 2
+    embed_dim = 1024
+    patches_resolution = (16, 16)
+    mlp_ratio = 2
     basic_layers = tf.keras.Sequential([BasicLayer(dim=int(embed_dim * 2 ** i_layer),
                                                    input_resolution=(patches_resolution[0] // (2 ** i_layer),
                                                                      patches_resolution[1] // (2 ** i_layer)),
@@ -96,12 +95,12 @@ def create_swin_deepix(path):
                                                    # norm_layer=norm_layer,
                                                    downsample=PatchMerging if (
                                                            i_layer < num_layers - 1) else None,
-                                                  # use_checkpoint=use_checkpoint,
+                                                   # use_checkpoint=use_checkpoint,
                                                    prefix=f'layers{i_layer}',
                                                    name=f'deepix_swin_basic_layer_{i_layer}') for i_layer in
-                                        range(num_layers)],name='deepix_swin_basic_layers')
+                                        range(num_layers)], name='deepix_swin_basic_layers')
     x = deepdanbooru.output
-    reshape_layer = tf.keras.layers.Reshape((256, 1024),name='deepix_reshape_layer')
+    reshape_layer = tf.keras.layers.Reshape((256, 1024), name='deepix_reshape_layer')
     x = reshape_layer(x)
     x = basic_layers(x)
     x = layers.LayerNormalization(epsilon=1e-6, name="deepix_norm")(x)
@@ -118,7 +117,7 @@ def create_swin_deepix(path):
 
 def load_deepdanbooru_pretrained_model(path):
     deepdanbooru_pretrained_model = tf.keras.models.load_model(path, compile=False)
-    #outputs = deepdanbooru_pretrained_model.get_layer('activation_96').output
+    # outputs = deepdanbooru_pretrained_model.get_layer('activation_96').output
     outputs = deepdanbooru_pretrained_model.get_layer('add_31').output
     feature_extract_model = tf.keras.Model(inputs=deepdanbooru_pretrained_model.input, outputs=outputs)
     return feature_extract_model
@@ -180,7 +179,7 @@ class WindowAttention(tf.keras.layers.Layer):
         self.relative_position_bias_table = self.add_weight(f'{self.prefix}/attn/relative_position_bias_table',
                                                             shape=(
                                                                 (2 * self.window_size[0] - 1) * (
-                                                                            2 * self.window_size[1] - 1),
+                                                                        2 * self.window_size[1] - 1),
                                                                 self.num_heads),
                                                             initializer=tf.initializers.Zeros(), trainable=True)
 
@@ -395,16 +394,17 @@ class PatchMerging(tf.keras.layers.Layer):
 class BasicLayer(tf.keras.layers.Layer):
     def __init__(self, dim, input_resolution, depth, num_heads, window_size,
                  mlp_ratio=4., qkv_bias=True, qk_scale=None, drop=0., attn_drop=0.,
-                 drop_path_prob=0., norm_layer=LayerNormalization, downsample=None, use_checkpoint=False, prefix='',name=''):
+                 drop_path_prob=0., norm_layer=LayerNormalization, downsample=None, use_checkpoint=False, prefix='',
+                 name=''):
         super().__init__()
         self.dim = dim
         self.input_resolution = input_resolution
         self.depth = depth
         self.use_checkpoint = use_checkpoint
-        self._name=name
+        self._name = name
 
         # build blocks
-        #print('SwinTransformerBlock_input' + str(dim) + ' ' + str(input_resolution))
+        # print('SwinTransformerBlock_input' + str(dim) + ' ' + str(input_resolution))
         self.blocks = tf.keras.Sequential([SwinTransformerBlock(dim=dim, input_resolution=input_resolution,
                                                                 num_heads=num_heads, window_size=window_size,
                                                                 shift_size=0 if (
@@ -423,14 +423,12 @@ class BasicLayer(tf.keras.layers.Layer):
             self.downsample = None
 
     def build(self, input_shape):
-        #print(input_shape[-1])
-        #print(input_shape[-2])
-        self.dim=input_shape[-1]
-        #print(tf.math.sqrt(tf.cast(input_shape[-2], dtype=tf.float32)))
+        # print(input_shape[-1])
+        # print(input_shape[-2])
+        self.dim = input_shape[-1]
+        # print(tf.math.sqrt(tf.cast(input_shape[-2], dtype=tf.float32)))
         # self.dim = dim
         # self.input_resolution = input_resolution
-
-
 
     def call(self, x):
         x = self.blocks(x)
@@ -520,23 +518,25 @@ class SwinTransformerModel(tf.keras.Model):
         dpr = [x for x in np.linspace(0., drop_path_rate, sum(depths))]
 
         # build layers
-        self.basic_layers = tf.keras.Sequential([BasicLayer(dim=int(embed_dim * 2 ** i_layer),
-                                                            input_resolution=(patches_resolution[0] // (2 ** i_layer),
-                                                                              patches_resolution[1] // (2 ** i_layer)),
-                                                            depth=depths[i_layer],
-                                                            num_heads=num_heads[i_layer],
-                                                            window_size=window_size,
-                                                            mlp_ratio=self.mlp_ratio,
-                                                            qkv_bias=qkv_bias, qk_scale=qk_scale,
-                                                            drop=drop_rate, attn_drop=attn_drop_rate,
-                                                            drop_path_prob=dpr[sum(depths[:i_layer]):sum(
-                                                                depths[:i_layer + 1])],
-                                                            norm_layer=norm_layer,
-                                                            downsample=PatchMerging if (
-                                                                    i_layer < self.num_layers - 1) else None,
-                                                            use_checkpoint=use_checkpoint,
-                                                            prefix=f'layers{i_layer}') for i_layer in
-                                                 range(self.num_layers)])
+        self.basic_layers = tf.keras.Sequential([BasicLayer(
+            name=f'swin_basic_layers{i_layer}',
+            dim=int(embed_dim * 2 ** i_layer),
+            input_resolution=(patches_resolution[0] // (2 ** i_layer),
+                              patches_resolution[1] // (2 ** i_layer)),
+            depth=depths[i_layer],
+            num_heads=num_heads[i_layer],
+            window_size=window_size,
+            mlp_ratio=self.mlp_ratio,
+            qkv_bias=qkv_bias, qk_scale=qk_scale,
+            drop=drop_rate, attn_drop=attn_drop_rate,
+            drop_path_prob=dpr[sum(depths[:i_layer]):sum(
+                depths[:i_layer + 1])],
+            norm_layer=norm_layer,
+            downsample=PatchMerging if (
+                    i_layer < self.num_layers - 1) else None,
+            use_checkpoint=use_checkpoint,
+            prefix=f'layers{i_layer}') for i_layer in
+            range(self.num_layers)])
         self.norm = norm_layer(epsilon=1e-5, name='norm')
         self.avgpool = GlobalAveragePooling1D()
         if self.include_top:
@@ -591,6 +591,26 @@ def SwinTransformer(model_name='swin_tiny_224', num_classes=1000, include_top=Tr
 
     return net
 
+
+def pure_swin():
+    cfg = dict(input_size=(224, 224), window_size=7, embed_dim=128, depths=[2, 2, 18, 2],
+               num_heads=[4, 8, 16, 32])
+
+    net = SwinTransformerModel(
+        model_name='deepix_swin', include_top=False, img_size=cfg['input_size'],
+        window_size=cfg[
+            'window_size'], embed_dim=cfg['embed_dim'], depths=cfg['depths'], num_heads=cfg['num_heads']
+    )
+    input = tf.keras.Input(shape=(cfg['input_size'][0], cfg['input_size'][1], 3), name="input")
+    x = net(input)
+    bookmark_predict = _output_layer(x, 'bookmark_predict', 10, 'softmax')
+    view_predict = _output_layer(x, 'view_predict', 10, 'softmax')
+    sanity_predict = _output_layer(x, 'sanity_predict', 10, 'softmax')
+    restrict_predict = _output_layer(x, 'restrict_predict', 3, 'softmax')
+    x_restrict_predict = _output_layer(x, 'x_restrict_predict', 3, 'softmax')
+    output = [bookmark_predict, view_predict, sanity_predict, restrict_predict, x_restrict_predict]
+    model = models.Model(inputs=input, outputs=output, name='deepix')
+    return model
 
 # input_shape = (4, 224, 224, 3)
 # x = tf.random.normal(input_shape)

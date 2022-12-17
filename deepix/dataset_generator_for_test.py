@@ -18,7 +18,7 @@ def load_and_preprocess_image_from_url(url):
         image = tf.io.decode_image(
             httpclient.request('GET', bytes.decode(url.numpy()).replace("10.0.0.5", "local.ipv4.host")).data,
             channels=3)
-        image = tf.image.resize(image, [512, 512])
+        image = tf.image.resize(image, [224, 224])
         image /= 255.0
         return image
     except Exception as e:
@@ -53,7 +53,7 @@ def build_dataset_for_test(deepix_train_index, offset, batch_size):
     img_dataset = img_dataset.map(load_and_preprocess_image_from_url_warp, num_parallel_calls=AUTOTUNE)
     label_dataset = label_dataset.map(build_label_data_warp, num_parallel_calls=AUTOTUNE)
     dataset = tf.data.Dataset.zip((img_dataset, label_dataset))
-    dataset = dataset.shuffle(1000, reshuffle_each_iteration=False)
+    #dataset = dataset.shuffle(1000, reshuffle_each_iteration=False)
     dataset = dataset.batch(batch_size)
     dataset = dataset.prefetch(buffer_size=AUTOTUNE)
     dataset = dataset.map(_fixup_shape, num_parallel_calls=AUTOTUNE)

@@ -161,7 +161,7 @@ def build_dataset(batch_size,test=False):
                                                           })
                                              )
 
-    dataset = dataset.shuffle(batch_size, reshuffle_each_iteration=True)
+    #dataset = dataset.shuffle(batch_size, reshuffle_each_iteration=True)
     dataset = dataset.batch(batch_size, drop_remainder=True)
     dataset = dataset.prefetch(buffer_size=AUTOTUNE)
     dataset = dataset.map(_fixup_shape, num_parallel_calls=AUTOTUNE)

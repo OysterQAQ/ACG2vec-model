@@ -10,7 +10,7 @@ from tensorflow.keras import mixed_precision
 from dataset_generator import build_dataset
 from dataset_generator_for_test import build_dataset_for_test
 from deepix import create_acg2vec_pixiv_predict_model
-from deepix_resnet_swin_transformer import create_swin_deepix
+from deepix_resnet_swin_transformer import create_swin_deepix,pure_swin
 policy = mixed_precision.Policy('mixed_float16')
 mixed_precision.set_global_policy(policy)
 
@@ -72,6 +72,8 @@ def build_model(model_config):
         model = create_acg2vec_pixiv_predict_model(model_config['pretrained_model_path'])
     if model_config['model_name'] =='deepix_v2':
         model =create_swin_deepix(model_config['pretrained_model_path'])
+    if model_config['model_name'] =='pure_swin':
+        model =pure_swin()
     if model_config['optimizer_type'] == 'adam':
         optimizer = tf.keras.optimizers.Adam(learning_rate=model_config['learning_rate'])
     elif model_config['optimizer_type'] == 'sgd':
