@@ -28,7 +28,8 @@ def create_acg2vec_pixiv_predict_model(pretrained_model_path):
 
 def load_deepdanbooru_pretrained_model(path):
     deepdanbooru_pretrained_model = tf.keras.models.load_model(path,compile=False)
-    outputs = deepdanbooru_pretrained_model.get_layer('activation_96').output
+    #outputs = deepdanbooru_pretrained_model.get_layer('activation_96').output
+    outputs = deepdanbooru_pretrained_model.get_layer('add_31').output
     feature_extract_model = tf.keras.Model(inputs=deepdanbooru_pretrained_model.input, outputs=outputs)
     return feature_extract_model
 

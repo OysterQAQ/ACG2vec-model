@@ -7,10 +7,10 @@ import tensorflow as tf
 import tensorflow_addons as tfa
 from tensorflow.keras import mixed_precision
 
-from dataset_generator import build_dataset
-from dataset_generator_for_test import build_dataset_for_test
+from dataset_generator import DataSetGenerator
 from deepix import create_acg2vec_pixiv_predict_model
-from deepix_resnet_swin_transformer import create_swin_deepix,pure_swin
+from deepix_resnet_swin_transformer import create_swin_deepix, pure_swin, pure_resnet
+
 policy = mixed_precision.Policy('mixed_float16')
 mixed_precision.set_global_policy(policy)
 
@@ -68,16 +68,27 @@ def build_model(model_config):
                      'x_restrict_predict': [tfa.metrics.F1Score(name='f1', num_classes=3)],
                      # 'tag_predict': [tf.keras.metrics.AUC(num_labels=10240,multi_label=True,name='auc'), tf.keras.metrics.Recall(name='recall'), tf.keras.metrics.Precision(name='precision')]
                      }
-    if model_config['model_name'] =='deepix_v1':
+    if model_config['model_name'] == 'deepix_v1':
         model = create_acg2vec_pixiv_predict_model(model_config['pretrained_model_path'])
-    if model_config['model_name'] =='deepix_v2':
-        model =create_swin_deepix(model_config['pretrained_model_path'])
-    if model_config['model_name'] =='pure_swin':
-        model =pure_swin()
+    if model_config['model_name'] == 'deepix_v2':
+        model = create_swin_deepix(model_config['pretrained_model_path'])
+    if model_config['model_name'] == 'pure_swin':
+        model = pure_swin(model_config['input_size'])
+    if model_config['model_name'] == 'pure_resnet':
+        model = pure_resnet(model_config['input_size'])
     if model_config['optimizer_type'] == 'adam':
         optimizer = tf.keras.optimizers.Adam(learning_rate=model_config['learning_rate'])
     elif model_config['optimizer_type'] == 'sgd':
         optimizer = tf.optimizers.SGD(model_config['learning_rate'], momentum=0.9, nesterov=True)
+    elif model_config['optimizer_type'] == 'adamW':
+        step = tf.Variable(0, trainable=False)
+        schedule = tf.optimizers.schedules.PiecewiseConstantDecay(
+            [10000, 15000], [1e-0, 1e-1, 1e-2])
+        # lr and wd can be a function or a tensor
+        lr = model_config['learning_rate'] * schedule(step)
+        wd = lambda: 1e-4 * schedule(step)
+        # optimizer = tfa.optimizers.AdamW(learning_rate=lr, weight_decay=wd)
+        optimizer = tfa.optimizers.AdamW(learning_rate=lr, weight_decay=wd)
     else:
         multi_optimizer_config = model_config['multi_optimizer_config']
         custom_layers_index = []
@@ -90,6 +101,16 @@ def build_model(model_config):
                 if config['optimizer'] == 'adam':
                     other_layers_opt = tf.keras.optimizers.Adam(config['learning_rate'])
                 # other_layers_opt = tf.keras.optimizers.Adam(config['learning_rate'])
+                if config['optimizer'] == 'adamW':
+                    step = tf.Variable(0, trainable=False)
+                    schedule = tf.optimizers.schedules.PiecewiseConstantDecay(
+                        [10000, 15000], [1e-0, 1e-1, 1e-2])
+                    # lr and wd can be a function or a tensor
+                    lr = config['learning_rate'] * schedule(step)
+                    wd = lambda: 1e-4 * schedule(step)
+                    # optimizer = tfa.optimizers.AdamW(learning_rate=lr, weight_decay=wd)
+                    optimizers_and_layers.append(
+                        (tfa.optimizers.AdamW(learning_rate=lr, weight_decay=wd), layers))
             else:
                 layers_index = get_layer_index_by_name(model, config['layer_keyword'])
                 layers = [layer for i, layer in enumerate(model.layers) if
@@ -144,8 +165,9 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--load_ck", type=str2bool, default=True)
 parser.add_argument("--test", type=str2bool, default=False)
 parser.add_argument("--config_name", type=str, default='deepix_v1')
-parser.add_argument("--ck",type=str2bool,default=False)
-parser.add_argument("--h5",type=str2bool,default=False)
+parser.add_argument("--ck", type=str2bool, default=False)
+parser.add_argument("--h5", type=str2bool, default=False)
+parser.add_argument("--epoch", type=int, default=100)
 
 args = parser.parse_args()
 print(args.load_ck)
@@ -163,8 +185,9 @@ save_weight_history_path = 'model_weight_history/' + config_name
 checkpoint_path = "ck/" + config_name + "/{epoch:04d}.ckpt"
 log_dir = "logs/fit/" + config_name
 batch_size = model_config['batch_size']
+input_size = model_config['input_size']
 tensorBoard_update_freq = 'batch'
-epoch = 100
+# epoch = 100
 # resume_flag = True
 # epoch数目
 redis_epoch_key = 'deepix_epoch_index'
@@ -181,18 +204,19 @@ if args.load_ck:
     latest = tf.train.latest_checkpoint(checkpoint_dir)
     model.load_weights(latest)
     print('加载历史权重完成' + latest)
-if args.test:
-    dataset = build_dataset_for_test(60000000, 640000, batch_size)
-else:
-    dataset = build_dataset(batch_size)
-callbacks=[]
+
+dataset_generator = DataSetGenerator(batch_size, args.test, [input_size, input_size])
+dataset = dataset_generator.build_dataset()
+
+callbacks = []
 if args.test:
     callbacks.append(tf.keras.callbacks.TensorBoard(log_dir=log_dir, update_freq=tensorBoard_update_freq))
+    callbacks.append(tf.keras.callbacks.LambdaCallback(on_batch_end=batch_metric_to_tensorboard))
 if args.ck:
     callbacks.append([tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_path, verbose=0, save_weights_only=True,
-                                       save_freq=100 * batch_size),
+                                                         save_freq=100 * batch_size),
 
-                      # tf.keras.callbacks.LambdaCallback(on_batch_end=batch_metric_to_tensorboard),
+                      # ,
                       # tf.keras.callbacks.TensorBoard(log_dir=log_dir),
                       # tf.keras.callbacks.LambdaCallback(on_epoch_end=save_h5model_each_epoch),
                       ])
@@ -200,5 +224,5 @@ if args.h5:
     callbacks.append([tf.keras.callbacks.ModelCheckpoint(save_weight_history_path + '/{epoch:08d}.h5',
                                                          period=1, save_freq='epoch', save_weights_only=True)])
 # model.summary()
-model.fit(dataset, epochs=epoch, steps_per_epoch=None, callbacks=callbacks, initial_epoch=epoch_index if (
+model.fit(dataset, epochs=args.epoch, steps_per_epoch=None, callbacks=callbacks, initial_epoch=epoch_index if (
     not args.test) else 0)

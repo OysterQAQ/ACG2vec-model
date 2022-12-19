@@ -592,8 +592,8 @@ def SwinTransformer(model_name='swin_tiny_224', num_classes=1000, include_top=Tr
     return net
 
 
-def pure_swin():
-    cfg = dict(input_size=(224, 224), window_size=7, embed_dim=128, depths=[2, 2, 18, 2],
+def pure_swin(input_size=224):
+    cfg = dict(input_size=(input_size,input_size), window_size=7, embed_dim=128, depths=[2, 2, 18, 2],
                num_heads=[4, 8, 16, 32])
 
     net = SwinTransformerModel(
@@ -603,12 +603,28 @@ def pure_swin():
     )
     input = tf.keras.Input(shape=(cfg['input_size'][0], cfg['input_size'][1], 3), name="input")
     x = net(input)
-    bookmark_predict = _output_layer(x, 'bookmark_predict', 10, 'softmax')
-    view_predict = _output_layer(x, 'view_predict', 10, 'softmax')
-    sanity_predict = _output_layer(x, 'sanity_predict', 10, 'softmax')
-    restrict_predict = _output_layer(x, 'restrict_predict', 3, 'softmax')
-    x_restrict_predict = _output_layer(x, 'x_restrict_predict', 3, 'softmax')
-    output = [bookmark_predict, view_predict, sanity_predict, restrict_predict, x_restrict_predict]
+    bookmark_predict = _output_layer(x, 'bookmark_predict', 15, 'softmax')
+    view_predict = _output_layer(x, 'view_predict', 15, 'softmax')
+    sanity_predict = _output_layer(x, 'sanity_predict', 5, 'softmax')
+    output = [bookmark_predict, view_predict, sanity_predict]
+    model = models.Model(inputs=input, outputs=output, name='deepix')
+    return model
+
+def pure_resnet(input_size=224):
+    input = tf.keras.Input(shape=(input_size, input_size, 3), name="input")
+    resnet=tf.keras.applications.ResNet50(
+        include_top=False,
+        weights=None ,
+        input_tensor=None,
+        input_shape=None,
+        pooling="avg",
+
+    )
+    x=resnet(input)
+    bookmark_predict = _output_layer(x, 'bookmark_predict', 15, 'softmax')
+    view_predict = _output_layer(x, 'view_predict', 15, 'softmax')
+    sanity_predict = _output_layer(x, 'sanity_predict', 5, 'softmax')
+    output = [bookmark_predict, view_predict, sanity_predict]
     model = models.Model(inputs=input, outputs=output, name='deepix')
     return model
 
