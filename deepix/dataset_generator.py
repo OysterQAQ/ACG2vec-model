@@ -11,18 +11,18 @@ AUTOTUNE = tf.data.experimental.AUTOTUNE
 
 
 class DataSetGenerator:
-    def __init__(self, batch_size, test=False, input_size=[224, 224]):
+    def __init__(self, batch_size, test=False, input_size=[224, 224],config_name="deepix_v1"):
         self.batch_size = batch_size
         self.test = test
         self.input_size = input_size
-        self.redis_index_key = 'deepix_illust_index'
-        self.redis_epoch_key = 'deepix_epoch_index'
+        self.redis_index_key = 'deepix_illust_index'+config_name
+        self.redis_epoch_key = 'deepix_epoch_index'+config_name
         self.redis_conn = redis.Redis(host='local.ipv4.host', port=6379, password='', db=0)
         self.sql_2 = '''
-            select image_sync.illust_id as illust_id, total_bookmarks,total_view,sanity_level ,image_urls
-            from image_sync
-                    left join illusts i on image_sync.illust_id = i.illust_id
-            where image_sync.illust_id < %s
+            select deepix_data.illust_id as illust_id, total_bookmarks,total_view,sanity_level ,image_urls
+            from deepix_data
+                    left join illusts i on deepix_data.illust_id = i.illust_id
+            where deepix_data.illust_id < %s
             order by illust_id desc
             limit %s 
             '''
@@ -33,6 +33,9 @@ class DataSetGenerator:
         self.offset = 160000
         self.offset_2 = 160000
         self.httpclient = urllib3.PoolManager()
+        if self.test:
+            self.min_deepix_train_index = 60000000
+            self.max_deepix_train_index = 61000000
         self.min_deepix_train_index = 20000000
         self.max_deepix_train_index = 80000000
 
@@ -63,13 +66,16 @@ class DataSetGenerator:
             for image_urls, bookmark_label, view_label, sanity_label in zip(
                     data_from_db.image_urls.values, data_from_db.total_bookmarks.values, data_from_db.total_view.values,
                     data_from_db.sanity_level.values):
-                image_urls = json.load(image_urls)
+                image_urls = json.loads(image_urls)
                 for image_url in image_urls:
+                    #time_start = time.time()
                     yield self.load_and_preprocess_image_from_url_with_catch(image_url['medium']), {
                         "bookmark_predict": bookmark_discretization(bookmark_label),
                         "view_predict": view_discretization(view_label),
                         "sanity_predict": sanity_discretization(sanity_label),
                     }
+                    #time_end = time.time()
+                    #print('\n处理单条耗时：', time_end - time_start, 's')
 
             del data_from_db
 
@@ -82,26 +88,40 @@ class DataSetGenerator:
             output_mode='one_hot', )
         sanity_discretization = tf.keras.layers.Discretization(bin_boundaries=[2, 4, 6, 7], output_mode='one_hot', )
         time_start = time.time()
-        data_from_db = pd.read_sql(self.sql_2, self.engine_2, params=[60000000, 160000])
+        data_from_db = pd.read_sql(self.sql_2, self.engine_2, params=[60000000, 10000])
         time_end = time.time()
         print('\n查询sql耗时：', time_end - time_start, 's')
         deepix_train_index = int(data_from_db.illust_id.values[-1])
         self.redis_conn.set(self.redis_index_key, deepix_train_index)
         # 注释了label
-        label = []
         feature = []
+        label_bookmark_predict = []
+        label_view_predict = []
+        label_sanity_predict = []
+
+        img_dataset = tf.data.Dataset.from_tensor_slices(data_from_db.img_path.values)
+        label_dataset = tf.data.Dataset.from_tensor_slices((data_from_db.bookmark_label.values,
+                                                            data_from_db.view_label.values,
+                                                            data_from_db.sanity_label.values,
+                                                            data_from_db.restrict_label.values,
+                                                            data_from_db.x_restrict_label.values))
+
         for image_urls, bookmark_label, view_label, sanity_label in zip(
                 data_from_db.image_urls.values, data_from_db.total_bookmarks.values, data_from_db.total_view.values,
                 data_from_db.sanity_level.values):
-            image_urls = json.load(image_urls)
+            image_urls = json.loads(image_urls)
             for image_url in image_urls:
                 try:
-                    label.append(self.load_and_preprocess_image_from_url_py(image_url['medium']))
-                    feature.append({
-                        "bookmark_predict": bookmark_discretization(bookmark_label),
-                        "view_predict": view_discretization(view_label),
-                        "sanity_predict": sanity_discretization(sanity_label),
-                    })
+
+                    feature.append(self.load_and_preprocess_image_from_url_py(image_url['medium']))
+                    label_bookmark_predict.append(bookmark_discretization(bookmark_label))
+                    label_view_predict.append(view_discretization(view_label))
+                    label_sanity_predict.append(sanity_discretization(sanity_label))
+                    # feature.append({
+                    #     "bookmark_predict": bookmark_discretization(bookmark_label),
+                    #     "view_predict": view_discretization(view_label),
+                    #     "sanity_predict": sanity_discretization(sanity_label),
+                    # })
 
                 # yield load_and_preprocess_image_from_url_py(image_url['medium']), {
                 #     "bookmark_predict": bookmark_discretization(bookmark_label),
@@ -109,9 +129,10 @@ class DataSetGenerator:
                 #     "sanity_predict": sanity_discretization(sanity_label),
                 # }
                 except Exception as e:
-                    print(image_url)
+                    print(image_url['medium'])
+                    print(e)
         del data_from_db
-        return label, feature
+        return feature, {"bookmark_predict":label_bookmark_predict,"view_predict":label_view_predict,"sanity_predict":label_sanity_predict}
 
     def load_and_preprocess_image_from_url(self,url):
         try:
@@ -154,8 +175,8 @@ class DataSetGenerator:
         return images, labels
 
     def build_dataset(self):
-        if self.test:
-            return self.build_dataset_for_test()
+        # if self.test:
+        #     return self.build_dataset_for_test()
 
         dataset = tf.data.Dataset.from_generator(self.generate_data_from_db,
                                                  output_types=(
@@ -165,7 +186,7 @@ class DataSetGenerator:
                                                       })
                                                  )
 
-        dataset = dataset.shuffle(self.batch_size, reshuffle_each_iteration=True)
+        dataset = dataset.shuffle(self.batch_size*100, reshuffle_each_iteration=True)
         dataset = dataset.batch(self.batch_size, drop_remainder=True)
         dataset = dataset.prefetch(buffer_size=AUTOTUNE)
         dataset = dataset.map(self._fixup_shape, num_parallel_calls=AUTOTUNE)
@@ -173,7 +194,7 @@ class DataSetGenerator:
         return dataset
 
     def build_dataset_for_test(self):
-        label, feature = self.generate_data_from_db_for_test()
+        feature,label  = self.generate_data_from_db_for_test()
         dataset = tf.data.Dataset.from_tensor_slices((feature, label))
         dataset = dataset.shuffle(self.batch_size, reshuffle_each_iteration=True)
         dataset = dataset.batch(self.batch_size, drop_remainder=True)

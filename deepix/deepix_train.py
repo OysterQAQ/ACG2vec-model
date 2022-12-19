@@ -20,14 +20,11 @@ def batch_metric_to_tensorboard(batch, logs):
     tf.summary.scalar('bookmark_predict_loss', data=logs['bookmark_predict_loss'], step=batch)
     tf.summary.scalar('view_predict_loss', data=logs['view_predict_loss'], step=batch)
     tf.summary.scalar('sanity_predict_loss', data=logs['sanity_predict_loss'], step=batch)
-    tf.summary.scalar('restrict_predict_loss', data=logs['restrict_predict_loss'], step=batch)
-    tf.summary.scalar('x_restrict_predict_loss', data=logs['x_restrict_predict_loss'], step=batch)
     # tf.summary.scalar('tag_predict_loss', data=logs['tag_predict_loss'], step=batch)
     tf.summary.scalar('bookmark_predict_acc', data=logs['bookmark_predict_acc'], step=batch)
     tf.summary.scalar('view_predict_acc', data=logs['view_predict_acc'], step=batch)
     tf.summary.scalar('sanity_predict_acc', data=logs['sanity_predict_acc'], step=batch)
-    tf.summary.scalar('restrict_predict_acc', data=logs['restrict_predict_acc'], step=batch)
-    tf.summary.scalar('x_restrict_predict_acc', data=logs['x_restrict_predict_acc'], step=batch)
+
     # tf.summary.scalar('tag_predict_acc', data=logs['tag_predict_acc'], step=batch)
     # tf.summary.scalar('tag_predict_recall', data=logs['tag_predict_recall'], step=batch)
     # tf.summary.scalar('tag_predict_precision', data=logs['tag_predict_precision'], step=batch)
@@ -54,20 +51,12 @@ def build_model(model_config):
     multi_loss = {'bookmark_predict': tf.keras.losses.CategoricalCrossentropy(),
                   'view_predict': tf.keras.losses.CategoricalCrossentropy(),
                   'sanity_predict': tf.keras.losses.CategoricalCrossentropy(),
-                  'restrict_predict': tf.keras.losses.CategoricalCrossentropy(),
-                  'x_restrict_predict': tf.keras.losses.CategoricalCrossentropy(),
-                  # 'tag_predict':model_config['tag_predict_loss_function']
-                  # 'binary_focal_crossentropy'
-                  #    'binary_crossentropy'
-                  # tfa.losses.SigmoidFocalCrossEntropy()
+
                   }
-    multi_metrics = {'bookmark_predict': ['acc', tfa.metrics.F1Score(name='f1', num_classes=10)],
-                     'view_predict': ['acc', tfa.metrics.F1Score(name='f1', num_classes=10)],
-                     'sanity_predict': ['acc', tfa.metrics.F1Score(name='f1', num_classes=10)],
-                     'restrict_predict': [tfa.metrics.F1Score(name='f1', num_classes=3)],
-                     'x_restrict_predict': [tfa.metrics.F1Score(name='f1', num_classes=3)],
-                     # 'tag_predict': [tf.keras.metrics.AUC(num_labels=10240,multi_label=True,name='auc'), tf.keras.metrics.Recall(name='recall'), tf.keras.metrics.Precision(name='precision')]
-                     }
+    multi_metrics = {'bookmark_predict': ['acc', tfa.metrics.F1Score(name='f1', num_classes=15)],
+                     'view_predict': ['acc', tfa.metrics.F1Score(name='f1', num_classes=15)],
+                     'sanity_predict': ['acc', tfa.metrics.F1Score(name='f1', num_classes=5)],
+                           }
     if model_config['model_name'] == 'deepix_v1':
         model = create_acg2vec_pixiv_predict_model(model_config['pretrained_model_path'])
     if model_config['model_name'] == 'deepix_v2':
@@ -205,7 +194,7 @@ if args.load_ck:
     model.load_weights(latest)
     print('加载历史权重完成' + latest)
 
-dataset_generator = DataSetGenerator(batch_size, args.test, [input_size, input_size])
+dataset_generator = DataSetGenerator(batch_size, args.test, [input_size, input_size],config_name)
 dataset = dataset_generator.build_dataset()
 
 callbacks = []
