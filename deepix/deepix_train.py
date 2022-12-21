@@ -194,7 +194,7 @@ if args.load_ck:
     model.load_weights(latest)
     print('加载历史权重完成' + latest)
 
-dataset_generator = DataSetGenerator(batch_size, args.test, [input_size, input_size],config_name)
+dataset_generator = DataSetGenerator(batch_size, args.test, input_size,config_name)
 dataset = dataset_generator.build_dataset()
 
 callbacks = []
@@ -203,7 +203,7 @@ if args.test:
     callbacks.append(tf.keras.callbacks.LambdaCallback(on_batch_end=batch_metric_to_tensorboard))
 if args.ck:
     callbacks.append([tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_path, verbose=0, save_weights_only=True,
-                                                         save_freq=100 * batch_size),
+                                                         save_freq=6400 / batch_size),
 
                       # ,
                       # tf.keras.callbacks.TensorBoard(log_dir=log_dir),

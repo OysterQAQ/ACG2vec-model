@@ -612,7 +612,7 @@ def pure_swin(input_size=224):
 
 def pure_resnet(input_size=224):
     input = tf.keras.Input(shape=(input_size, input_size, 3), name="input")
-    resnet=tf.keras.applications.ResNet50(
+    resnet=tf.keras.applications.ResNet101V2(
         include_top=False,
         weights=None ,
         input_tensor=None,
