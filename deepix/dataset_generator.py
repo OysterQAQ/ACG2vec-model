@@ -20,8 +20,8 @@ class DataSetGenerator:
         self.batch_size = batch_size
         self.test = test
         self.input_size = input_size
-        self.redis_index_key = 'deepix_illust_index' + config_name
-        self.redis_epoch_key = 'deepix_epoch_index' + config_name
+        self.redis_index_key = 'deepix_illust_index_' + config_name
+        self.redis_epoch_key = 'deepix_epoch_index_' + config_name
         self.redis_conn = redis.Redis(host='local.ipv4.host', port=6379, password='', db=0)
         self.sql = '''
             select illust_id , total_bookmarks,total_view,sanity_level ,REGEXP_REPLACE(JSON_EXTRACT(image_urls,'$[*].medium'), '\\\\[|\\\\]| |"', '') as image_urls
@@ -36,24 +36,18 @@ class DataSetGenerator:
                     '''
         self.engine = sqlalchemy.create_engine(
             'mysql+pymysql://root:Cheerfun.dev@local.ipv4.host:3306/deepix?charset=utf8')
-        self.offset = 160000
+        self.offset = 32000
         self.httpclient = urllib3.PoolManager()
         if self.test:
             self.min_deepix_train_index = 60000000
-            self.max_deepix_train_index = 61000000
-            self.redis_conn.set(self.redis_index_key, 61000000)
+            self.max_deepix_train_index = 61100000
+            self.redis_conn.set(self.redis_index_key, self.max_deepix_train_index)
             self.redis_conn.set(self.redis_epoch_key, 0)
+        else:
+            self.min_deepix_train_index = 20000000
+            self.max_deepix_train_index = 80000000
 
-        self.min_deepix_train_index = 20000000
-        self.max_deepix_train_index = 80000000
-        self.bookmark_discretization = tf.keras.layers.Discretization(
-            bin_boundaries=[10, 30, 50, 70, 100, 130, 170, 220, 300, 400, 550, 800, 1300, 2700],
-            output_mode='one_hot', )
-        self.view_discretization = tf.keras.layers.Discretization(
-            bin_boundaries=[500, 700, 1000, 1500, 2000, 2500, 3000, 4000, 5000, 6500, 8500, 12000, 19000, 35000],
-            output_mode='one_hot', )
-        self.sanity_discretization = tf.keras.layers.Discretization(bin_boundaries=[2, 4, 6, 7],
-                                                                    output_mode='one_hot', )
+
 
     def generate_data_from_db(self):
         deepix_train_index = self.max_deepix_train_index if self.redis_conn.get(self.redis_index_key) is None else int(
