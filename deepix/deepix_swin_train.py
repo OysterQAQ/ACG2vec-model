@@ -151,7 +151,7 @@ tensorBoard_update_freq = 'batch'
 epoch = 100
 #resume_flag = True
 # epoch数目
-redis_epoch_key='deepix_swin_epoch_index'
+redis_epoch_key='deepix_epoch_index_' + config_name
 epoch_index = 0 if redis_conn.get(redis_epoch_key) is None else int(redis_conn.get(redis_epoch_key))
 
 

@@ -179,7 +179,7 @@ tensorBoard_update_freq = 'batch'
 # epoch = 100
 # resume_flag = True
 # epoch数目
-redis_epoch_key = 'deepix_epoch_index'
+redis_epoch_key='deepix_epoch_index_' + config_name
 epoch_index = 0 if redis_conn.get(redis_epoch_key) is None else int(redis_conn.get(redis_epoch_key))
 
 model = build_model(model_config)
@@ -194,6 +194,10 @@ if args.load_ck:
     model.load_weights(latest)
     print('加载历史权重完成' + latest)
 
+# if args.load_h5:
+#     model.load_weights(args.load_h5)
+#     print('加载h5权重完成' + latest)
+
 dataset_generator = DataSetGenerator(batch_size, args.test, input_size,config_name)
 dataset = dataset_generator.build_dataset()
 
@@ -203,7 +207,7 @@ if args.test:
     callbacks.append(tf.keras.callbacks.LambdaCallback(on_batch_end=batch_metric_to_tensorboard))
 if args.ck:
     callbacks.append([tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_path, verbose=0, save_weights_only=True,
-                                                         save_freq=6400 / batch_size),
+                                                         save_freq=int(9600 / batch_size)),
 
                       # ,
                       # tf.keras.callbacks.TensorBoard(log_dir=log_dir),

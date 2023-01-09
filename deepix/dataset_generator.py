@@ -24,7 +24,7 @@ class DataSetGenerator:
         self.redis_epoch_key = 'deepix_epoch_index_' + config_name
         self.redis_conn = redis.Redis(host='local.ipv4.host', port=6379, password='', db=0)
         self.sql = '''
-            select illust_id , total_bookmarks,total_view,sanity_level ,REGEXP_REPLACE(JSON_EXTRACT(image_urls,'$[*].medium'), '\\\\[|\\\\]| |"', '') as image_urls
+            select illust_id , total_bookmarks,total_view,sanity_level ,REGEXP_REPLACE(new_image_urls, '\\\\[|\\\\]', '') as image_urls
             from deepix_data
             where illust_id < %s
             order by illust_id desc
@@ -78,7 +78,7 @@ class DataSetGenerator:
                                                                                        data_from_db.total_bookmarks.values,
                                                                                        data_from_db.total_view.values,
                                                                                        data_from_db.sanity_level.values):
-                image_urls = image_urls.split(',')
+                image_urls = image_urls.split('","')
                 for image_url in image_urls:
                     try:
                         #with tf.device("/gpu:0"):
@@ -87,7 +87,7 @@ class DataSetGenerator:
                                 "view_predict": view_discretization(view_label),
                                 "sanity_predict": sanity_discretization(sanity_label),
                             }
-                            yield self.load_and_preprocess_image_from_url(image_url), label
+                            yield self.load_and_preprocess_image_from_url(image_url.replace('"', '')), label
 
                     except Exception as e:
                         print(str(illust_id) + '图片有错误')
@@ -158,7 +158,7 @@ class DataSetGenerator:
             # time_start = time.time()
             if not isinstance(url, str):
                 url = bytes.decode(url.numpy())
-            image_raw=self.httpclient.request('GET', url.replace('https://i.pximg.net', 'http://local.ipv4.host:8888')).data
+            image_raw=self.httpclient.request('GET', url).data
             try:
                 image = tf.io.decode_image(image_raw, channels=3)
             except:
@@ -228,7 +228,7 @@ class DataSetGenerator:
         # dataset = dataset.map(lambda imgurl, label_map: (load_and_preprocess_image_from_url_warp(imgurl),label_map), num_parallel_calls=AUTOTUNE)
         dataset = dataset.shuffle(self.batch_size, reshuffle_each_iteration=True)
         dataset = dataset.batch(self.batch_size, drop_remainder=True)
-        dataset = dataset.prefetch(buffer_size=self.batch_size * 640)
+        dataset = dataset.prefetch(buffer_size=AUTOTUNE)
         dataset = dataset.map(self._fixup_shape, num_parallel_calls=AUTOTUNE)
         dataset = dataset.apply(tf.data.experimental.ignore_errors())
 

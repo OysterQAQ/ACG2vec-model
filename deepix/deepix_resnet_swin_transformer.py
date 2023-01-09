@@ -593,11 +593,12 @@ def SwinTransformer(model_name='swin_tiny_224', num_classes=1000, include_top=Tr
 
 
 def pure_swin(input_size=224):
-    cfg = dict(input_size=(input_size,input_size), window_size=7, embed_dim=128, depths=[2, 2, 18, 2],
-               num_heads=[4, 8, 16, 32])
-
+    # cfg = dict(input_size=(input_size,input_size), window_size=7, embed_dim=128, depths=[2, 2, 18, 2],
+    #            num_heads=[4, 8, 16, 32])
+    cfg= dict(input_size=(224, 224), window_size=7, embed_dim=192, depths=[2, 2, 18, 2],
+                           num_heads=[6, 12, 24, 48])
     net = SwinTransformerModel(
-        model_name='deepix_swin', include_top=False, img_size=cfg['input_size'],
+        model_name='swin_large_224', include_top=False, img_size=cfg['input_size'],
         window_size=cfg[
             'window_size'], embed_dim=cfg['embed_dim'], depths=cfg['depths'], num_heads=cfg['num_heads']
     )
