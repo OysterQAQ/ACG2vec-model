@@ -5,7 +5,7 @@ from keras import models
 from tensorflow.keras import mixed_precision
 policy = mixed_precision.Policy('mixed_float16')
 mixed_precision.set_global_policy(policy)
-
+import urllib3
 def create_acg2vec_pixiv_predict_model(pretrained_model_path):
     deepdanbooru_pretrained_model = load_deepdanbooru_pretrained_model(pretrained_model_path)
     x = deepdanbooru_pretrained_model.output
@@ -29,7 +29,9 @@ def create_acg2vec_pixiv_predict_model(pretrained_model_path):
 def load_deepdanbooru_pretrained_model(path):
     deepdanbooru_pretrained_model = tf.keras.models.load_model(path,compile=False)
     #outputs = deepdanbooru_pretrained_model.get_layer('activation_96').output
-    outputs = deepdanbooru_pretrained_model.get_layer('add_31').output
+    #outputs = deepdanbooru_pretrained_model.get_layer('activation_132').output
+    outputs = deepdanbooru_pretrained_model.get_layer('add_43').output
+    #outputs = deepdanbooru_pretrained_model.get_layer('add_31').output
     feature_extract_model = tf.keras.Model(inputs=deepdanbooru_pretrained_model.input, outputs=outputs)
     return feature_extract_model
 
@@ -79,4 +81,20 @@ def stack2(x, filters, blocks, stride1=2, name=None):
     x = block2(x, filters, stride=stride1, name=name + '_block' + str(blocks))
     return x
 
+#
+model=load_deepdanbooru_pretrained_model('/Volumes/Data/oysterqaq/PycharmProjects/ACG2vec-model/deepix/model-resnet_custom_v3.h5')
+outputs = tf.keras.layers.GlobalAveragePooling2D()(model.output)
+#outputs=tf.math.l2_normalize(outputs, axis=1, epsilon=1e-12, name='l2_normalize')
 
+feature_extract_model = tf.keras.Model(inputs=model.input, outputs=outputs)
+feature_extract_model.summary()
+import urllib.request
+image = tf.io.decode_image(
+                urllib3.PoolManager().request('GET', 'https://img2.baidu.com/it/u=3680225897,351564079&fm=253&fmt=auto&app=120&f=JPEG?w=1280&h=800').data,
+                channels=3)
+image = tf.image.resize(image, [512,512])
+image /= 255.0
+label=feature_extract_model.predict(tf.expand_dims(image, 0))[0]
+print(label)
+print(tf.norm(label, 2))
+feature_extract_model.save("/Volumes/Data/oysterqaq/Desktop/img_semantics_feature_extract_model_f32")

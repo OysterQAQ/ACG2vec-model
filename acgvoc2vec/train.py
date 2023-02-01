@@ -30,8 +30,10 @@ data_from_db = pd.read_sql(sql, engine)
 dataset = []
 
 for i in range(len(data_from_db.sentence_1)):
+    if str.isspace(data_from_db.sentence_1[i]) or  str.isspace(data_from_db.sentence_2[i]):
+        continue
     dataset.append(InputExample(texts=[data_from_db.sentence_1[i], data_from_db.sentence_2[i]]))
-
+del data_from_db
 batch_size = 240
 train_dataloader = DataLoader(dataset, shuffle=True, batch_size=batch_size)
 
