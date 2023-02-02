@@ -4,7 +4,7 @@ from sentence_transformers import InputExample
 from sentence_transformers import SentenceTransformer
 from sentence_transformers import losses,evaluation
 from torch.utils.data import DataLoader
-
+from data_generator import KVIterableDataset
 def test(sentences):
     embeddings = model.encode(sentences)
     key_value ={}
@@ -24,18 +24,19 @@ model = SentenceTransformer('sentence-transformers/distiluse-base-multilingual-c
 
 
 # load dataset
-engine = sqlalchemy.create_engine('mysql+pymysql://root:Cheerfun.dev@local.ipv4.host:3306/deepix?charset=utf8')
-sql = "select sentence_1,sentence_2 from fine_tune_st_dataset"
-data_from_db = pd.read_sql(sql, engine)
-dataset = []
-
-for i in range(len(data_from_db.sentence_1)):
-    if str.isspace(data_from_db.sentence_1[i]) or  str.isspace(data_from_db.sentence_2[i]):
-        continue
-    dataset.append(InputExample(texts=[data_from_db.sentence_1[i], data_from_db.sentence_2[i]]))
-del data_from_db
-batch_size = 240
-train_dataloader = DataLoader(dataset, shuffle=True, batch_size=batch_size)
+# engine = sqlalchemy.create_engine('mysql+pymysql://root:Cheerfun.dev@local.ipv4.host:3306/deepix?charset=utf8')
+# sql = "select sentence_1,sentence_2 from fine_tune_st_dataset where id< 35708121"
+# data_from_db = pd.read_sql(sql, engine)
+# dataset = []
+#
+# for i in range(len(data_from_db.sentence_1)):
+#     if str.isspace(data_from_db.sentence_1[i]) or  str.isspace(data_from_db.sentence_2[i]) or data_from_db.sentence_1[i].startswith('萌娘百科讨论:'):
+#         continue
+#     dataset.append(InputExample(texts=[data_from_db.sentence_1[i], data_from_db.sentence_2[i]]))
+# del data_from_db
+dataset= KVIterableDataset(start=1, end=72708121,offset=6400000)
+batch_size = 160
+train_dataloader = DataLoader(dataset, shuffle=False, batch_size=batch_size)
 
 train_loss = losses.MultipleNegativesRankingLoss(model=model)
 num_epochs = 20
@@ -44,7 +45,7 @@ warmup_steps = int(len(train_dataloader) * num_epochs * 0.1)  # 10% of train dat
 # train
 model.fit(train_objectives=[(train_dataloader, train_loss)],
           epochs=num_epochs,
-          warmup_steps=warmup_steps, output_path='acg2vec_st_model',checkpoint_path='acg2vec_st_model_ck',use_amp=True,checkpoint_save_steps=6000,checkpoint_save_total_limit=10)
+          warmup_steps=warmup_steps, output_path='acg2vec_st_model_2023_02_02',checkpoint_path='acg2vec_st_model_ck_2023_02_02',use_amp=True,checkpoint_save_steps=6000,checkpoint_save_total_limit=10)
 
 #
 #
