@@ -34,9 +34,9 @@ model = SentenceTransformer('sentence-transformers/distiluse-base-multilingual-c
 #         continue
 #     dataset.append(InputExample(texts=[data_from_db.sentence_1[i], data_from_db.sentence_2[i]]))
 # del data_from_db
-dataset= KVIterableDataset(start=1, end=72708121,offset=6400000)
-batch_size = 160
-train_dataloader = DataLoader(dataset, shuffle=False, batch_size=batch_size)
+dataset= KVIterableDataset(start=1, end=72708121,offset=4000)
+batch_size = 96
+train_dataloader = DataLoader(dataset, shuffle=False, batch_size=batch_size, num_workers=10)
 
 train_loss = losses.MultipleNegativesRankingLoss(model=model)
 num_epochs = 20
