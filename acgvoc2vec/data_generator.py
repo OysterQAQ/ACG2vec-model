@@ -55,7 +55,7 @@ class KVIterableDataset(torch.utils.data.IterableDataset):
             gc.collect()
 
     def __len__(self):
-        return self.end - self.start
+        return self.end - self.start -6000000#有些跳过的条目
 
     def __iter__(self):
         worker_info = torch.utils.data.get_worker_info()
