@@ -25,13 +25,18 @@ class KVIterableDataset(torch.utils.data.IterableDataset):
     def _sample_generator(self,worker_id,start,end):
         index=start
         while index < end:
-            time_start = time.time()
-            data_from_db = pd.read_sql(self.sql, self.engine, params=[index,self.offset])
+            #time_start = time.time()
+            try:
+                data_from_db = pd.read_sql(self.sql, self.engine, params=[index, self.offset])
+            except:
+                time.sleep(10)
+                continue
+            #data_from_db = pd.read_sql(self.sql, self.engine, params=[index,self.offset])
             length=len(data_from_db.sentence_1)
             index = data_from_db.id[length-1]
             time_end = time.time()
-            print('\n查询sql耗时：', time_end - time_start, 's')
-            print('worker'+str(worker_id)+'\n当前训练到' + str(index))
+            #print('\n查询sql耗时：', time_end - time_start, 's')
+            #print('worker'+str(worker_id)+'\n当前训练到' + str(index))
             for i in range(length):
                 if str.isspace(data_from_db.sentence_1[i]) or str.isspace(data_from_db.sentence_2[i]) or \
                         data_from_db.sentence_1[i].startswith('萌娘百科') or \
