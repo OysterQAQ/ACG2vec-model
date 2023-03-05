@@ -45,6 +45,7 @@ def sentencetransformer_to_tensorflow(model_path: str) -> tf.keras.Model:
     #     dense,
     # )
 
+
     model = tf.keras.Model(inputs=input, outputs=dense,
 
                            )

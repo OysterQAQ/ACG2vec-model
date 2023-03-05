@@ -10,7 +10,7 @@ import grpc
 from transformers import TFBertForSequenceClassification, BertTokenizerFast, BertConfig
 
 from transformers import AutoTokenizer
-model_name = 'acg_sentence-transformers'
+model_name = 'OysterQAQ/ACGVoc2vec'
 tokenizer = AutoTokenizer.from_pretrained(model_name)
 sequences = ["I love the new TensorFlow update in transformers."]
 
@@ -30,7 +30,7 @@ print(req)
 # input_data = {"instances": batch}
 
 # Query the REST API, the path corresponds to http://host:port/model_version/models_root_folder/model_name:method
-r = requests.post("http://localhost:8501/v1/models/deepix-st:predict", data=json.dumps(req))
+r = requests.post("http://localhost:8501/v1/models/acgvoc2vec:predict", data=json.dumps(req))
 print(r.text)
 # Parse the JSON result. The results are contained in a list with a root key called "predictions"
 # and as there is only one example, takes the first element of the list

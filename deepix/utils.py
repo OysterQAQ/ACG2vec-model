@@ -14,12 +14,10 @@ def ouput_model_arch_to_image(model, path):
 
 
 def pridict(model, path):
-    f = open("tagList.txt")
-    lines = f.readlines()
+
 
     image = tf.io.decode_image(tf.io.read_file(path),
                                channels=3)
-
     image = tf.image.resize(image, [299, 299])
     image /= 255.0
     image = tf.expand_dims(image, axis=0)
@@ -27,8 +25,5 @@ def pridict(model, path):
     print(p)
     a = p[-1]
     ind = np.argpartition(a[0], -10)[-10:]
-    print(a)
-    print(ind)
-    print(a[0][ind])
-    for i in ind:
-        print(lines[i])
+
+
