@@ -16,7 +16,7 @@ import traceback
 import urllib.request
 
 class DataSetGenerator:
-    def __init__(self, batch_size, test=False, input_size=224, config_name="deepix_v1"):
+    def __init__(self, batch_size, test=False,to_tf_record=False, input_size=224, config_name="deepix_v1"):
         self.batch_size = batch_size
         self.test = test
         self.input_size = input_size
@@ -43,9 +43,15 @@ class DataSetGenerator:
             self.max_deepix_train_index = 61100000
             self.redis_conn.set(self.redis_index_key, self.max_deepix_train_index)
             self.redis_conn.set(self.redis_epoch_key, 0)
+        elif to_tf_record:
+            self.min_deepix_train_index = 20000000
+            self.max_deepix_train_index = 80000000
+            self.redis_conn.set(self.redis_index_key, self.max_deepix_train_index)
+            self.redis_conn.set(self.redis_epoch_key, 0)
         else:
             self.min_deepix_train_index = 20000000
             self.max_deepix_train_index = 80000000
+
 
 
 
@@ -197,10 +203,10 @@ class DataSetGenerator:
             print(url)
 
     def _fixup_shape(self, images, labels):
-        images.set_shape([None, None, None, 3])
-        labels["bookmark_predict"].set_shape([None, 15])
-        labels["view_predict"].set_shape([None, 15])
-        labels["sanity_predict"].set_shape([None, 5])
+        images.set_shape([self.input_size, self.input_size, 3])
+        labels["bookmark_predict"].set_shape([15])
+        labels["view_predict"].set_shape([15])
+        labels["sanity_predict"].set_shape([5])
         return images, labels
 
     def load_and_preprocess_image_from_url_warp(self, url):
