@@ -71,7 +71,7 @@ def pytorch_to_tensorflow_dense_layer(dense_model: sentence_transformers.models.
     )
 
 
-model_name = '/Volumes/Data/oysterqaq/Desktop/acg2vec_st_model-2023-03-03-20+20-epoch'
+model_name = '/Volumes/Data/oysterqaq/Downloads/acg2vec_st_model-2023-03-03-20+30-epoch'
 max_seq_length = 128
 output_dimension = 512
 

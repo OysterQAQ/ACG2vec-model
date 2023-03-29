@@ -234,7 +234,7 @@ class DataSetGenerator:
         # dataset = dataset.map(lambda imgurl, label_map: (load_and_preprocess_image_from_url_warp(imgurl),label_map), num_parallel_calls=AUTOTUNE)
         dataset = dataset.shuffle(self.batch_size, reshuffle_each_iteration=True)
         dataset = dataset.batch(self.batch_size, drop_remainder=True)
-        dataset = dataset.prefetch(buffer_size=AUTOTUNE)
+        dataset = dataset.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
         dataset = dataset.map(self._fixup_shape, num_parallel_calls=AUTOTUNE)
         dataset = dataset.apply(tf.data.experimental.ignore_errors())
 
