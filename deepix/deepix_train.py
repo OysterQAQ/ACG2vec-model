@@ -5,12 +5,12 @@ import os
 import redis
 import tensorflow as tf
 import tensorflow_addons as tfa
-from tensorflow.keras import mixed_precision
+
 
 from dataset_generator import DataSetGenerator
 from deepix import create_acg2vec_pixiv_predict_model
 from deepix_resnet_swin_transformer import create_swin_deepix, pure_swin, pure_resnet
-
+from tensorflow.keras import mixed_precision
 policy = mixed_precision.Policy('mixed_float16')
 mixed_precision.set_global_policy(policy)
 

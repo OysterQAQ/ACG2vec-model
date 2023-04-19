@@ -42,6 +42,9 @@ def conv2d_bn(x,
 policy = mixed_precision.Policy('float32')
 mixed_precision.set_global_policy(policy)
 
+model = keras.models.load_model('/Volumes/Data/oysterqaq/Desktop/img_semantics_feature_extract_model_f32/1', compile=False)
+model.summary()
+
 model = keras.models.load_model('/Volumes/Data/oysterqaq/Desktop/00000003_weight.h5', compile=False)
 # model.save_weights('/Volumes/Data/oysterqaq/Desktop/00000003_weight.h5')
 model.save("/Volumes/Data/oysterqaq/Desktop/label_predict_model")
