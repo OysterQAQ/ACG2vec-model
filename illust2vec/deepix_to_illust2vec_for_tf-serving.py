@@ -19,7 +19,7 @@ class Base64DecoderLayer(tf.keras.layers.Layer):
     def byte_to_img(self, byte_tensor):
         # base64 decoding id done by tensorflow serve, when using b64 json
         byte_tensor = tf.io.decode_base64(byte_tensor)
-        imgs_map = tf.io.decode_image(byte_tensor)
+        imgs_map = tf.io.decode_image(byte_tensor,channels=3)
         imgs_map.set_shape((None, None, 3))
         img = tf.image.resize(imgs_map, self.target_size)
         img = tf.cast(img, dtype=tf.float32) / 255
@@ -52,13 +52,13 @@ feature_extract_model.summary()
 import base64
 
 
-pic = open("/Volumes/Data/oysterqaq/Desktop/004538_188768.jpg", "rb")
-pic_base64 = base64.urlsafe_b64encode(pic.read())
-
-print(pic_base64)
-##转成base64后的字符串格式为 b'图片base64字符串'，前面多了 b'，末尾多了 '，所以需要截取一下
-
-print(feature_extract_model(tf.stack([tf.convert_to_tensor(pic_base64)])))
+# pic = open("/Volumes/Data/oysterqaq/Desktop/004538_188768.jpg", "rb")
+# pic_base64 = base64.urlsafe_b64encode(pic.read())
+#
+# print(pic_base64)
+# ##转成base64后的字符串格式为 b'图片base64字符串'，前面多了 b'，末尾多了 '，所以需要截取一下
+#
+# print(feature_extract_model(tf.stack([tf.convert_to_tensor(pic_base64)])))
 
 feature_extract_model.save("/Volumes/Data/oysterqaq/Desktop/img_semantics_feature_extract_model_f32_base64_input")
 
