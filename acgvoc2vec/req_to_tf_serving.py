@@ -12,9 +12,9 @@ from transformers import TFBertForSequenceClassification, BertTokenizerFast, Ber
 from transformers import AutoTokenizer
 model_name = 'OysterQAQ/ACGVoc2vec'
 tokenizer = AutoTokenizer.from_pretrained(model_name)
-sequences = ["I love the new TensorFlow update in transformers."]
+sequences = ["背景"]
 
-batch = tokenizer(sequences)
+batch = tokenizer(sequences, padding=True,)
 req = []
 for s in sequences:
     b = tokenizer(s)
