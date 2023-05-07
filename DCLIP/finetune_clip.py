@@ -1,3 +1,6 @@
+import torch
+import clip
+from PIL import Image
 # Latest Update : 18 July 2022, 09:55 GMT+7
 
 # TO ADD :
@@ -10,7 +13,7 @@
 # BATCH_SIZE must larger than 1
 
 device = "cuda:0" if torch.cuda.is_available() else "cpu"  # If using GPU then use mixed precision training.
-model, preprocess = clip.load("ViT-B/32", device=device, jit=False)  # Must set jit=False for training
+model, preprocess = clip.load("ViT-L/14", device=device, jit=False)  # Must set jit=False for training
 
 
 class image_title_dataset(Dataset):
@@ -51,7 +54,7 @@ else:
 loss_img = nn.CrossEntropyLoss()
 loss_txt = nn.CrossEntropyLoss()
 optimizer = optim.Adam(model.parameters(), lr=5e-5, betas=(0.9, 0.98), eps=1e-6,
-                       weight_decay=0.2)  # Params used from paper, the lr is smaller, more safe for fine tuning to new dataset
+                       weight_decay=0.001)  # Params used from paper, the lr is smaller, more safe for fine tuning to new dataset
 
 # add your own code to track the training progress.
 for epoch in range(EPOCH):
