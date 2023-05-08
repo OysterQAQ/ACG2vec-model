@@ -26,7 +26,7 @@ clip_model, preprocess = clip.load("ViT-L/14", device=device)
 image = preprocess(Image.open("/Volumes/Data/oysterqaq/Desktop/f36bf9532c6f4fd392ac98f113c40c6b.jpeg")).unsqueeze(0).to(device)
 text=["girl","men","cat","school"]
 text = clip.tokenize(text)
-
+print(text.shape)
 with torch.no_grad():
     a = clip_model.encode_image(image)
     logits_per_image, logits_per_text = clip_model(

@@ -11,7 +11,10 @@ import clip
 import os
 import json
 from itertools import groupby
+import re
+from PIL import Image
 
+is_contain = re.compile(r'[A-Za-z]',re.S)
 class KVIterableDataset(torch.utils.data.IterableDataset):
     def __init__(self, start, end,offset,preprocess):
         super(KVIterableDataset).__init__()
@@ -44,42 +47,43 @@ class KVIterableDataset(torch.utils.data.IterableDataset):
             #print('worker'+str(worker_id)+'\n当前训练到' + str(index))
             for i in range(length):
                 #加载并且缩放图片
-                img = self.preprocess(data_from_db.path[i])
+                img = self.preprocess(Image.open("path"+data_from_db.path[i]))
                 #处理标签
                 tags = json.loads(data_from_db.tags[i])
                 #优先选择人物和作品标签
 
                 category_group=groupby(tags, key=lambda x: (x["category"]))
-                character=category_group[4]
-                work=category_group[5]
-                general=category_group[0]
-
-                #之后普通标签
+                character_list=category_group[4]
+                work_list=category_group[5]
+                general_list=category_group[0]
+                caption =""
+                for character in character_list:
+                    if range(work_list)!=0:
+                        #去除括号内作品内容
+                        character=re.sub(u"\\(.*?\\)", "", character)
+                    caption+=character.replace("_", " ")
+                    caption+=","
+                caption = caption[:-1]
+                if range(work_list)!=0:
+                    caption+="from "
+                for work in work_list:
+                    caption+=work.replace("_", " ")
+                    caption+=" "
+                # 普通标签
+                if range(general_list)!=0:
+                    caption+="with tag "
+                for general in general_list:
+                    if general.find("girl") == -1 and general.find("boy") == -1 and len(re.findall(is_contain,general))!=0:
+                        caption += general
+                        caption += ","
+                caption = caption[:-1]
                 #标签汇总成语句
                 #tokenize语句
                 #返回
                 # 过长截断 不行的话用huggingface的
-                self.title = clip.tokenize(
-                    list_txt)  # you can tokenize everything at once in here(slow at the beginning), or tokenize it in the training loop.
+                text = clip.tokenize(texts=caption,truncate=True)
                 #处理逻辑
-                if str.isspace(data_from_db.sentence_1[i]) or str.isspace(data_from_db.sentence_2[i]) or \
-                        data_from_db.sentence_1[i].startswith('萌娘百科') or \
-                        data_from_db.sentence_1[i].startswith('“萌娘百科') or \
-                        data_from_db.sentence_1[i].startswith('“User') or \
-                        data_from_db.sentence_1[i].startswith('User') or \
-                        data_from_db.sentence_1[i].startswith('用户') or \
-                        data_from_db.sentence_1[i].startswith('“用户') or \
-                        data_from_db.sentence_1[i].startswith('讨论') or \
-                        data_from_db.sentence_1[i].startswith('“Talk') or \
-                        data_from_db.sentence_1[i].startswith('Talk') or \
-                        data_from_db.sentence_1[i].startswith('Template') or \
-                        data_from_db.sentence_1[i].startswith('模板') or \
-                        data_from_db.sentence_1[i].startswith('帮助') or \
-                        data_from_db.sentence_1[i].startswith('“Help') or \
-                        data_from_db.sentence_1[i].startswith('“Template')  \
-                        :
-                    continue
-                yield InputExample(texts=[data_from_db.sentence_1[i].replace('版本间的差异', '').replace('“','').replace('”',''), data_from_db.sentence_2[i]])
+                yield InputExample(img,text)
             del data_from_db
             gc.collect()
 
