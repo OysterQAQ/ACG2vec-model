@@ -16,7 +16,7 @@ from PIL import Image
 
 is_contain = re.compile(r'[A-Za-z]',re.S)
 class KVIterableDataset(torch.utils.data.IterableDataset):
-    def __init__(self, start, end,offset,preprocess):
+    def __init__(self, start=0, end=2996459,offset=100,preprocess=None):
         super(KVIterableDataset).__init__()
         assert end > start, "this example code only works with end >= start"
         self.start = start
