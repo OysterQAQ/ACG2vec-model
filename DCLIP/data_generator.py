@@ -13,11 +13,12 @@ import json
 from itertools import groupby
 import re
 from PIL import Image
+from torchvision.transforms import Compose, Resize, CenterCrop, ToTensor, Normalize
 
 is_contain = re.compile(r'[A-Za-z]',re.S)
-class KVIterableDataset(torch.utils.data.IterableDataset):
+class DanbooruIterableDataset(torch.utils.data.IterableDataset):
     def __init__(self, start=0, end=2996459,offset=100,preprocess=None):
-        super(KVIterableDataset).__init__()
+        super(DanbooruIterableDataset).__init__()
         assert end > start, "this example code only works with end >= start"
         self.start = start
         self.end = end
@@ -40,41 +41,46 @@ class KVIterableDataset(torch.utils.data.IterableDataset):
                 time.sleep(10)
                 continue
             #data_from_db = pd.read_sql(self.sql, self.engine, params=[index,self.offset])
-            length=len(data_from_db.sentence_1)
+            length=len(data_from_db.id)
             index = data_from_db.id[length-1]
             time_end = time.time()
             #print('\n查询sql耗时：', time_end - time_start, 's')
             #print('worker'+str(worker_id)+'\n当前训练到' + str(index))
             for i in range(length):
                 #加载并且缩放图片
-                img = self.preprocess(Image.open("path"+data_from_db.path[i]))
+                #img = self.preprocess(Image.open("path"+data_from_db.path[i]))
+                img = self.preprocess(Image.open("/Volumes/Data/oysterqaq/Desktop/107776952_p0_square1200.jpg"))
                 #处理标签
                 tags = json.loads(data_from_db.tags[i])
                 #优先选择人物和作品标签
+                category_group = {}
+                for tag in tags:
+                    category_group.setdefault(tag["category"], []).append(tag)
 
-                category_group=groupby(tags, key=lambda x: (x["category"]))
+                #category_group=groupby(tags, key=lambda x: (x["category"]))
                 character_list=category_group[4]
                 work_list=category_group[5]
                 general_list=category_group[0]
                 caption =""
                 for character in character_list:
-                    if range(work_list)!=0:
+                    if len(work_list)!=0:
                         #去除括号内作品内容
-                        character=re.sub(u"\\(.*?\\)", "", character)
-                    caption+=character.replace("_", " ")
+                        character["name"]=re.sub(u"\\(.*?\\)", "", character["name"])
+                    caption+=character["name"].replace("_", " ")
                     caption+=","
                 caption = caption[:-1]
-                if range(work_list)!=0:
+                caption += " "
+                if len(work_list)!=0:
                     caption+="from "
                 for work in work_list:
-                    caption+=work.replace("_", " ")
+                    caption+=work["name"].replace("_", " ")
                     caption+=" "
                 # 普通标签
-                if range(general_list)!=0:
+                if len(general_list)!=0:
                     caption+="with tag "
                 for general in general_list:
-                    if general.find("girl") == -1 and general.find("boy") == -1 and len(re.findall(is_contain,general))!=0:
-                        caption += general
+                    if general["name"].find("girl") == -1 and general["name"].find("boy") == -1 and len(re.findall(is_contain,general["name"]))!=0:
+                        caption += general["name"]
                         caption += ","
                 caption = caption[:-1]
                 #标签汇总成语句
@@ -83,7 +89,10 @@ class KVIterableDataset(torch.utils.data.IterableDataset):
                 # 过长截断 不行的话用huggingface的
                 text = clip.tokenize(texts=caption,truncate=True)
                 #处理逻辑
-                yield InputExample(img,text)
+                print(caption)
+                print(text)
+                print(img)
+                yield img,text
             del data_from_db
             gc.collect()
 
@@ -126,3 +135,23 @@ class KVIterableDataset(torch.utils.data.IterableDataset):
 #
 # # With even more workers
 # print(list(torch.utils.data.DataLoader(ds, num_workers=12)))
+try:
+    from torchvision.transforms import InterpolationMode
+    BICUBIC = InterpolationMode.BICUBIC
+except ImportError:
+    BICUBIC = Image.BICUBIC
+def _convert_image_to_rgb(image):
+    return image.convert("RGB")
+def _transform(n_px):
+    return Compose([
+        Resize(n_px, interpolation=BICUBIC),
+        CenterCrop(n_px),
+        _convert_image_to_rgb,
+        ToTensor(),
+        Normalize((0.48145466, 0.4578275, 0.40821073), (0.26862954, 0.26130258, 0.27577711)),
+    ])
+
+ds = DanbooruIterableDataset(start=1, end=12000,offset=10,preprocess=_transform(224))
+dataloader=torch.utils.data.DataLoader(ds, num_workers=0)
+for samples, targets in dataloader:
+    print(samples)
