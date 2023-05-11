@@ -1,6 +1,7 @@
 import gc
 import json
 import math
+import os
 import re
 import time
 
@@ -32,7 +33,12 @@ def _transform(n_px):
         Normalize((0.48145466, 0.4578275, 0.40821073), (0.26862954, 0.26130258, 0.27577711)),
     ])
 
-
+def is_image(filename):
+    ext = os.path.splitext(filename)[-1]
+    if ext.lower() in ['.jpg', '.jpeg', '.gif', '.bmp', '.png']:
+        return True
+    else:
+        return False
 class DanbooruIterableDataset(torch.utils.data.IterableDataset):
     def __init__(self, start=0, end=2996459, offset=100, preprocess=_transform(224)):
         super(DanbooruIterableDataset).__init__()
@@ -65,8 +71,17 @@ class DanbooruIterableDataset(torch.utils.data.IterableDataset):
             # print('worker'+str(worker_id)+'\n当前训练到' + str(index))
             for i in range(length):
                 # 加载并且缩放图片
-                # img = self.preprocess(Image.open("path"+data_from_db.path[i]))
-                img = self.preprocess(Image.open("/Volumes/Data/oysterqaq/Desktop/107776952_p0_square1200.jpg"))
+                if not is_image(data_from_db.path[i]):
+                    continue
+
+                try:
+                    img = self.preprocess(
+                        Image.open(data_from_db.path[i].replace("./", "/mnt/lvm/danbooru2021/danbooru2021/")))
+                except Exception as e:
+                    #print(e)
+                    continue
+
+                #img = self.preprocess(Image.open("/Volumes/Data/oysterqaq/Desktop/107776952_p0_square1200.jpg"))
                 # 处理标签
                 tags = json.loads(data_from_db.tags[i])
                 # 优先选择人物和作品标签

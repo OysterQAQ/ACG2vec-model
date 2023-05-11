@@ -73,7 +73,7 @@ for epoch in range(EPOCH):
         ground_truth = torch.arange(len(images), dtype=torch.long, device=device)
 
         total_loss = (loss_img(logits_per_image, ground_truth) + loss_txt(logits_per_text, ground_truth)) / 2
-        print(total_loss)
+        print(total_loss,end='\r')
         total_loss.backward()
         if device == "cpu":
             optimizer.step()
