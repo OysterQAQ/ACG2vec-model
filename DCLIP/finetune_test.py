@@ -1,9 +1,3 @@
-import torch
-import clip
-from torch import optim, nn
-
-from DCLIP.data_generator import DanbooruIterableDataset
-from PIL import Image
 # Latest Update : 18 July 2022, 09:55 GMT+7
 
 # TO ADD :
@@ -14,20 +8,38 @@ from PIL import Image
 # Half-precision stochastically rounded text encoder weights were used
 
 # BATCH_SIZE must larger than 1
+import torch
+import clip
+from PIL import Image
+from torch import optim, nn
+from torch.utils.data import Dataset, DataLoader
 
+from DCLIP.data_generator import DanbooruIterableDataset
 device = "cuda:0" if torch.cuda.is_available() else "cpu"  # If using GPU then use mixed precision training.
-model, preprocess = clip.load("ViT-L/14", device=device, jit=False)  # Must set jit=False for training
+model, preprocess = clip.load("ViT-B/32", device=device, jit=False)  # Must set jit=False for training
 
 
+class image_title_dataset(Dataset):
+    def __init__(self, list_image_path, list_txt):
+        self.image_path = list_image_path
+        self.title = clip.tokenize(
+            list_txt)  # you can tokenize everything at once in here(slow at the beginning), or tokenize it in the training loop.
 
+    def __len__(self):
+        return len(self.title)
+
+    def __getitem__(self, idx):
+        image = preprocess(Image.open(self.image_path[idx]))  # Image from PIL module
+        title = self.title[idx]
+        return image, title
 
 
 # use your own data
-list_image_path = ['folder/image1.jpg', 'folder2/image2.jpg']
+list_image_path = ['/Volumes/Data/oysterqaq/Desktop/107776952_p0_square1200.jpg', '/Volumes/Data/oysterqaq/Desktop/107776952_p0_square1200.jpg']
 list_txt = ['description for image1.jpg', 'description for image2.jpg']
-dataset = DanbooruIterableDataset
-ds = DanbooruIterableDataset(start=5000, end=5050, offset=10, )
-dataloader = torch.utils.data.DataLoader(ds, num_workers=0,batch_size=2)
+dataset = image_title_dataset(list_image_path, list_txt)
+train_dataloader = DataLoader(dataset, batch_size=2)  # Define your own dataloader
+
 
 # https://github.com/openai/CLIP/issues/57
 def convert_models_to_fp32(model):
@@ -44,18 +56,17 @@ else:
 loss_img = nn.CrossEntropyLoss()
 loss_txt = nn.CrossEntropyLoss()
 optimizer = optim.Adam(model.parameters(), lr=5e-5, betas=(0.9, 0.98), eps=1e-6,
-                       weight_decay=0.001)  # Params used from paper, the lr is smaller, more safe for fine tuning to new dataset
+                       weight_decay=0.2)  # Params used from paper, the lr is smaller, more safe for fine tuning to new dataset
 EPOCH=1
 # add your own code to track the training progress.
 for epoch in range(EPOCH):
-    for batch in dataloader:
+    for batch in train_dataloader:
         optimizer.zero_grad()
 
         images, texts = batch
 
         images = images.to(device)
         texts = texts.to(device)
-
 
         logits_per_image, logits_per_text = model(images, texts)
 
@@ -70,9 +81,3 @@ for epoch in range(EPOCH):
             convert_models_to_fp32(model)
             optimizer.step()
             clip.model.convert_weights(model)
-    torch.save({
-        'epoch': epoch,
-        'model_state_dict': model.state_dict(),
-        'optimizer_state_dict': optimizer.state_dict(),
-        'loss': total_loss,
-    }, f"model_checkpoint/model_10.pt")  # just change to your preferred folder/filename
