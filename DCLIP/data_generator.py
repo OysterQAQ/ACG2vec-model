@@ -66,7 +66,7 @@ class DanbooruIterableDataset(torch.utils.data.IterableDataset):
             # data_from_db = pd.read_sql(self.sql, self.engine, params=[index,self.offset])
             length = len(data_from_db.id)
             index = data_from_db.id[length - 1]
-            time_end = time.time()
+
             # print('\n查询sql耗时：', time_end - time_start, 's')
             # print('worker'+str(worker_id)+'\n当前训练到' + str(index))
             for i in range(length):
@@ -203,8 +203,8 @@ class DanbooruIterableDataset(torch.utils.data.IterableDataset):
 
 
 
-#
+
 # ds = DanbooruIterableDataset(start=5000, end=6000, offset=10, )
 # dataloader = torch.utils.data.DataLoader(ds, num_workers=0)
 # for samples, targets in dataloader:
-#     print("")
+#     print(samples.shape)

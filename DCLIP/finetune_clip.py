@@ -7,7 +7,7 @@ warnings.filterwarnings("ignore")
 from DCLIP.data_generator import DanbooruIterableDataset
 from PIL import Image
 # Latest Update : 18 July 2022, 09:55 GMT+7
-
+import gc
 # TO ADD :
 # Gradient Checkpointing
 # Filter out bias from weight decay
@@ -29,7 +29,7 @@ model, preprocess = clip.load("ViT-L/14", device=device, jit=False)  # Must set 
 
 # use your own data
 
-ds = DanbooruIterableDataset(start=0, end=2996459, offset=100, )
+ds = DanbooruIterableDataset(start=0, end=2996459, offset=2000, )
 dataloader = torch.utils.data.DataLoader(ds, num_workers=10,batch_size=40)
 
 # https://github.com/openai/CLIP/issues/57
@@ -46,13 +46,27 @@ else:
 
 loss_img = nn.CrossEntropyLoss()
 loss_txt = nn.CrossEntropyLoss()
-optimizer = optim.Adam(model.parameters(), lr=5e-5, betas=(0.9, 0.98), eps=1e-6,
+optimizer = optim.Adam(model.parameters(), lr=1e-6, betas=(0.9, 0.98), eps=1e-6,
                        weight_decay=0.001)  # Params used from paper, the lr is smaller, more safe for fine tuning to new dataset
 EPOCH=20
-# add your own code to track the training progress.
-for epoch in range(EPOCH):
+batchs=100079
+checkpoint = torch.load("model_checkpoint/dclip_3.pt")
+
+# Use these 3 lines if you use default model setting(not training setting) of the clip. For example, if you set context_length to 100 since your string is very long during training, then assign 100 to checkpoint['model_state_dict']["context_length"]
+#checkpoint['model_state_dict']["input_resolution"] = model.input_resolution #default is 224
+#checkpoint['model_state_dict']["context_length"] = model.context_length # default is 77
+#checkpoint['model_state_dict']["vocab_size"] = model.vocab_size
+
+
+model.load_state_dict(checkpoint['model_state_dict'])
+del checkpoint
+gc.collect()
+
+for epoch in range(4,EPOCH):
     print("当前训练到 epoch: " + str(epoch))
+    batch_index = 1
     for batch in dataloader:
+        batch_index+=1
         optimizer.zero_grad()
 
         images, texts = batch
@@ -69,7 +83,7 @@ for epoch in range(EPOCH):
         time_elapsed = time.time() - since
 
         #print('\r',"loss:   "+str(total_loss.item())+"    cost: "+str(time_elapsed* 1000)+"ms",end='')
-        print('\r', "loss:{:>2.10f}  cost:{:>3.2f} ms".format(total_loss.item(), time_elapsed * 1000), end='')
+        print("\r{:>10d}/{:<10d} loss:{:>2.10f}  cost:{:<3.2f}ms    ".format(batch_index,batchs if batchs is not None else 0,total_loss.item(), time_elapsed * 1000), end='')
 
         total_loss.backward()
         if device == "cpu":
@@ -78,6 +92,7 @@ for epoch in range(EPOCH):
             convert_models_to_fp32(model)
             optimizer.step()
             clip.model.convert_weights(model)
+    batchs=batch_index
     print('')
     torch.save({
         'epoch': epoch,
