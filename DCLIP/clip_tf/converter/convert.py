@@ -1,3 +1,4 @@
+import gc
 import hashlib
 import os
 import re
@@ -518,9 +519,20 @@ def verify(model_name: str, keras_model: keras.Model, image_url: str, text_optio
     # load pytorch clip
     device = "cuda" if torch.cuda.is_available() else "cpu"
     model, preprocess = clip.load(model_name, device=device, jit=False)
+    checkpoint = torch.load("/Volumes/Data/oysterqaq/Desktop/dclip_7.pt",map_location=torch.device('cpu'))
+
+    # Use these 3 lines if you use default model setting(not training setting) of the clip. For example, if you set context_length to 100 since your string is very long during training, then assign 100 to checkpoint['model_state_dict']["context_length"]
+    # checkpoint['model_state_dict']["input_resolution"] = model.input_resolution #default is 224
+    # checkpoint['model_state_dict']["context_length"] = model.context_length # default is 77
+    # checkpoint['model_state_dict']["vocab_size"] = model.vocab_size
+
+    model.load_state_dict(checkpoint['model_state_dict'])
+    del checkpoint
+    gc.collect()
     image = preprocess(
         Image.open(requests.get(image_url, stream=True).raw)
     ).unsqueeze(0)
+
     # img = tf.cast(img, dtype=tf.float32) / 255
 
     text = clip.tokenize(text_options)
@@ -567,11 +579,23 @@ def get_cache_path(model: str, cache_path: str, type: str = None) -> str:
 def convert(model_name: str, output: str, image_output: str = None, text_output: str = None, all: bool = False,
             should_verify: bool = True,model_path: str = None,full_output_path: str = None,img_output_path: str = None,text_output_path: str = None,img_base64: bool= False):
     model_url = MODELS[model_name]
+
+
     if model_path is not None:
-        state_dict=torch.load(model_path)
+
+        checkpoint = torch.load(model_path,map_location=torch.device('cpu'))
+
+        # Use these 3 lines if you use default model setting(not training setting) of the clip. For example, if you set context_length to 100 since your string is very long during training, then assign 100 to checkpoint['model_state_dict']["context_length"]
+        # checkpoint['model_state_dict']["input_resolution"] = model.input_resolution #default is 224
+        # checkpoint['model_state_dict']["context_length"] = model.context_length # default is 77
+        # checkpoint['model_state_dict']["vocab_size"] = model.vocab_size
+
+        state_dict=checkpoint['model_state_dict']
+        model = build_model(checkpoint['model_state_dict'])
+
     else:
         state_dict = download_statedict(model_url)
-    model = build_model(state_dict)
+        model = build_model(state_dict)
 
     # predict to build shapes (model.build doesnt work, as it only supports float inputs)
     model.predict((
