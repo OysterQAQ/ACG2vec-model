@@ -85,19 +85,6 @@ while illust_id_index < 105592139:
                 img = Image.open(BytesIO(resp.data))
                 image =preprocess(img)
                 illust_list.append({"illust_id": illust_id, "page": i + 1, "image": image})
-                # img_list.append(image)
-                # result = model.predict_on_batch(tf.expand_dims(image, 0))
-                # cursor = db.cursor()
-                # cursor.execute(
-                #     sql_insert % \
-                #     (illust_id, i + 1, json.dumps(result[0].tolist()))
-                # )
-                # cursor.execute(
-                #     sql_update_status % \
-                #     (illust_id, i + 1)
-                # )
-                # db.commit()
-                # print(type(img_list))
 
             except Exception as e:
                 print(e)

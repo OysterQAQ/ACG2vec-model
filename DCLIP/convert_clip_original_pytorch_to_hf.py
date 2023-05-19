@@ -14,7 +14,9 @@
 # limitations under the License.
 
 import argparse
+import gc
 
+import clip
 import torch
 from clip import load
 
@@ -117,9 +119,21 @@ def convert_clip_checkpoint(checkpoint_path, pytorch_dump_folder_path, config_pa
 
     hf_model = CLIPModel(config).eval()
 
-    pt_model, _ = load(checkpoint_path, device="cpu", jit=False)
-    pt_model = pt_model.eval()
+    #pt_model, _ = load(checkpoint_path, device="cpu", jit=False)
 
+    device = "cuda:0" if torch.cuda.is_available() else "cpu"  # If using GPU then use mixed precision training.
+    pt_model, _ = load("ViT-L/14", device=device, jit=False)  # Must set jit=False for training
+
+    checkpoint = torch.load(checkpoint_path, map_location=torch.device('cpu'))
+
+    pt_model.load_state_dict(checkpoint['model_state_dict'])
+    if device == "cpu":
+        pt_model.float()
+    else:
+        clip.model.convert_weights(pt_model)  # Actually this line is unnecessary since clip by default already on float16
+    del checkpoint
+    gc.collect()
+    pt_model = pt_model.eval()
     copy_text_model_and_projection(hf_model, pt_model)
     copy_vison_model_and_projection(hf_model, pt_model)
     hf_model.logit_scale = pt_model.logit_scale
@@ -138,11 +152,14 @@ def convert_clip_checkpoint(checkpoint_path, pytorch_dump_folder_path, config_pa
     hf_model.save_pretrained(pytorch_dump_folder_path)
 
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--pytorch_dump_folder_path", default=None, type=str, help="Path to the output PyTorch model.")
-    parser.add_argument("--checkpoint_path", default=None, type=str, help="Path to fairseq checkpoint")
-    parser.add_argument("--config_path", default=None, type=str, help="Path to hf config.json of model to convert")
-    args = parser.parse_args()
+# if __name__ == "__main__":
+#     parser = argparse.ArgumentParser()
+#     parser.add_argument("--pytorch_dump_folder_path", default=None, type=str, help="Path to the output PyTorch model.")
+#     parser.add_argument("--checkpoint_path", default=None, type=str, help="Path to fairseq checkpoint")
+#     parser.add_argument("--config_path", default=None, type=str, help="Path to hf config.json of model to convert")
+#     args = parser.parse_args()
+#
+#     convert_clip_checkpoint(args.checkpoint_path, args.pytorch_dump_folder_path, args.config_path)
 
-    convert_clip_checkpoint(args.checkpoint_path, args.pytorch_dump_folder_path, args.config_path)
+
+convert_clip_checkpoint("/Volumes/Data/oysterqaq/Desktop/dclip_7.pt", "/Volumes/Data/oysterqaq/Desktop/dclip_hf","/Volumes/Data/oysterqaq/Desktop/config.json")
