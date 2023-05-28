@@ -4,6 +4,7 @@ import math
 import os
 import re
 import time
+from io import BytesIO
 
 import clip
 import pandas as pd
@@ -186,6 +187,88 @@ class DanbooruIterableDataset(torch.utils.data.IterableDataset):
 
         # return iter(range(iter_start, iter_end))
 
+
+
+class PixivIterableDataset(torch.utils.data.IterableDataset):
+    def __init__(self, start=20, end=108507442, offset=1000, preprocess=_transform(224)):
+        super(PixivIterableDataset).__init__()
+        assert end > start, "this example code only works with end >= start"
+        self.start = start
+        self.end = end
+        self.index = start
+        self.offset = offset
+        self.sql = """
+        select a.illust_id as illust_id,
+       a.tag_list as tag_list,
+       REGEXP_REPLACE(JSON_EXTRACT(image_urls, '$[*].medium'), '\\\\[|\\\\]| |"', '') as image_urls
+from acg2vec.pixiv_illust_danbooru_style_tag a
+         left join pixivic_crawler.illusts b on a.illust_id = b.illust_id where a.illust_id > %s limit  %s
+        """
+        self.engine = sqlalchemy.create_engine(
+            'mysql+pymysql://root:Cheerfun.dev@local.ipv4.host:3306/deepix?charset=utf8')
+        self.preprocess = preprocess
+
+    def _sample_generator(self, worker_id, start, end):
+        index = start
+        while index < end:
+            # time_start = time.time()
+            try:
+                data_from_db = pd.read_sql(self.sql, self.engine, params=[index, self.offset])
+            except:
+                time.sleep(10)
+                continue
+            length = len(data_from_db.illust_id)
+            index = data_from_db.illust_id[length - 1]
+
+            for i in range(length):
+                # 加载并且缩放图片
+                illust_id = data_from_db.illust_id[i]
+                tag_list = data_from_db.tag_list[i]
+                img_url_string = data_from_db.image_urls[i]
+                image_urls = img_url_string.split(',')
+                text=clip.tokenize(texts=tag_list, truncate=True)
+
+                # 先处理成（illust_id,image_url的形式）
+                for i, image_url in enumerate(image_urls):
+                    try:
+                        resp = self.httpclient.request('GET', image_url.replace('https://i.pximg.net',
+                                                                                'http://local.ipv4.host:8888'))
+                        if resp.status != 200:
+                            continue
+                        img = Image.open(BytesIO(resp.data))
+                        image = self.preprocess(img)
+                        yield image, text
+                    except Exception as e:
+                        print(e)
+            del data_from_db
+            gc.collect()
+
+    def __len__(self):
+        return self.end - self.start
+
+    def __iter__(self):
+        worker_info = torch.utils.data.get_worker_info()
+        if worker_info is None:  # single-process data loading, return the full iterator
+            iter_start = self.start
+            iter_end = self.end
+            worker_id = 0
+        else:  # in a worker process
+            # split workload
+            per_worker = int(math.ceil((self.end - self.start) / float(worker_info.num_workers)))
+            worker_id = worker_info.id
+            iter_start = self.start + worker_id * per_worker
+            iter_end = min(iter_start + per_worker, self.end)
+        sample_iterator = self._sample_generator(worker_id, iter_start, iter_end)
+        return sample_iterator
+
+        # else:  # in a worker process
+        #     # split workload
+        #     per_worker = int(math.ceil((self.end - self.start) / float(worker_info.num_workers)))
+        #     worker_id = worker_info.id
+        #     iter_start = self.start + worker_id * per_worker
+        #     iter_end = min(iter_start + per_worker, self.end)
+
+        # return iter(range(iter_start, iter_end))
 
 # should give same set of data as range(3, 7), i.e., [3, 4, 5, 6].
 # ds = KVIterableDataset(start=1, end=72708121,offset=2400)
