@@ -199,7 +199,7 @@ class PixivIterableDataset(torch.utils.data.IterableDataset):
         self.offset = offset
         self.sql = """
         select a.illust_id as illust_id,
-       a.tag_list as tag_list,
+       REGEXP_REPLACE(a.tag_list, '\\\\[|\\\\]| |"', '') as tag_list,
        REGEXP_REPLACE(JSON_EXTRACT(image_urls, '$[*].medium'), '\\\\[|\\\\]| |"', '') as image_urls
 from acg2vec.pixiv_illust_danbooru_style_tag a
          left join pixivic_crawler.illusts b on a.illust_id = b.illust_id where a.illust_id > %s limit  %s
