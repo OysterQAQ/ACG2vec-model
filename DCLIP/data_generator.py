@@ -5,7 +5,7 @@ import os
 import re
 import time
 from io import BytesIO
-
+import urllib3
 import clip
 import pandas as pd
 import redis
@@ -52,7 +52,7 @@ class DanbooruIterableDataset(torch.utils.data.IterableDataset):
         self.redis_conn = redis.Redis(host='local.ipv4.host', port=6379, password='', db=0)
         self.sql = 'select id,path,tags from danbooru_illust where id > %s limit %s'
         self.engine = sqlalchemy.create_engine(
-            'mysql+pymysql://root:Cheerfun.dev@local.ipv4.host:3306/deepix?charset=utf8')
+            'mysql+pymysql://root:Cheerfun.dev@local.ipv4.host:3306/acg2vec?charset=utf8')
         self.preprocess = preprocess
 
     def _sample_generator(self, worker_id, start, end):
@@ -190,7 +190,7 @@ class DanbooruIterableDataset(torch.utils.data.IterableDataset):
 
 
 class PixivIterableDataset(torch.utils.data.IterableDataset):
-    def __init__(self, start=20, end=108507442, offset=1000, preprocess=_transform(224)):
+    def __init__(self, start=20, end=108507442, offset=100, preprocess=_transform(224)):
         super(PixivIterableDataset).__init__()
         assert end > start, "this example code only works with end >= start"
         self.start = start
@@ -199,14 +199,15 @@ class PixivIterableDataset(torch.utils.data.IterableDataset):
         self.offset = offset
         self.sql = """
         select a.illust_id as illust_id,
-       REGEXP_REPLACE(a.tag_list, '\\\\[|\\\\]| |"', '') as tag_list,
+       REGEXP_REPLACE(a.tag_list, '\\\\[|\\\\]|"', '') as tag_list,
        REGEXP_REPLACE(JSON_EXTRACT(image_urls, '$[*].medium'), '\\\\[|\\\\]| |"', '') as image_urls
 from acg2vec.pixiv_illust_danbooru_style_tag a
          left join pixivic_crawler.illusts b on a.illust_id = b.illust_id where a.illust_id > %s limit  %s
         """
         self.engine = sqlalchemy.create_engine(
-            'mysql+pymysql://root:Cheerfun.dev@local.ipv4.host:3306/deepix?charset=utf8')
+            'mysql+pymysql://root:Cheerfun.dev@local.ipv4.host:3306/acg2vec?charset=utf8')
         self.preprocess = preprocess
+        self.httpclient = urllib3.PoolManager()
 
     def _sample_generator(self, worker_id, start, end):
         index = start
@@ -226,7 +227,7 @@ from acg2vec.pixiv_illust_danbooru_style_tag a
                 tag_list = data_from_db.tag_list[i]
                 img_url_string = data_from_db.image_urls[i]
                 image_urls = img_url_string.split(',')
-                text=clip.tokenize(texts=tag_list, truncate=True)
+                text=clip.tokenize(texts=tag_list, truncate=True)[0]
 
                 # 先处理成（illust_id,image_url的形式）
                 for i, image_url in enumerate(image_urls):
@@ -290,4 +291,8 @@ from acg2vec.pixiv_illust_danbooru_style_tag a
 # ds = DanbooruIterableDataset(start=5000, end=6000, offset=10, )
 # dataloader = torch.utils.data.DataLoader(ds, num_workers=0)
 # for samples, targets in dataloader:
-#     print(samples.shape)
+#     print(targets.shape)
+# ds = PixivIterableDataset(start=5000, end=6000, offset=10, )
+# dataloader = torch.utils.data.DataLoader(ds, num_workers=0)
+# for samples, targets in dataloader:
+#      print(targets.shape)

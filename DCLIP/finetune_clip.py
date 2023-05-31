@@ -30,9 +30,9 @@ model, preprocess = clip.load("ViT-L/14", device=device, jit=False)  # Must set 
 # use your own data
 
 ds = DanbooruIterableDataset(start=0, end=2996459, offset=2000, )
-ds_pixiv = DanbooruIterableDataset()
+ds_pixiv = PixivIterableDataset()
 dataloader = torch.utils.data.DataLoader(ds, num_workers=10,batch_size=40)
-dataloader_pixiv = torch.utils.data.DataLoader(ds, num_workers=10,batch_size=40)
+dataloader_pixiv = torch.utils.data.DataLoader(ds_pixiv, num_workers=10,batch_size=40)
 
 # https://github.com/openai/CLIP/issues/57
 def convert_models_to_fp32(model):
@@ -48,7 +48,7 @@ else:
 
 loss_img = nn.CrossEntropyLoss()
 loss_txt = nn.CrossEntropyLoss()
-optimizer = optim.Adam(model.parameters(), lr=1e-6, betas=(0.9, 0.98), eps=1e-6,
+optimizer = optim.Adam(model.parameters(), lr=4e-6, betas=(0.9, 0.98), eps=1e-6,
                        weight_decay=0.001)  # Params used from paper, the lr is smaller, more safe for fine tuning to new dataset
 EPOCH=7
 batchs=100079
