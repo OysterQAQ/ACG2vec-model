@@ -123,13 +123,13 @@ class DanbooruIterableDataset(torch.utils.data.IterableDataset):
                     general_list_2 = general_list[int(len(general_list) / 2):]
                     caption_2 = caption
                     for general in general_list_1:
-                        if general["name"].find("girl") == -1 and general["name"].find("boy") == -1 and len(
+                        if len(
                                 re.findall(is_contain, general["name"])) != 0:
                             caption_2 += general["name"].replace("_", " ")
                             caption_2 += ","
                     caption_2 = caption_2[:-1]
                     for general in general_list_2:
-                        if general["name"].find("girl") == -1 and general["name"].find("boy") == -1 and len(
+                        if len(
                                 re.findall(is_contain, general["name"])) != 0:
                             caption += general["name"].replace("_", " ")
                             caption += ","
@@ -137,7 +137,7 @@ class DanbooruIterableDataset(torch.utils.data.IterableDataset):
                 else:
                     for general in general_list:
                         # 如果标签数据目大于20 则拆分成两个caption
-                        if general["name"].find("girl") == -1 and general["name"].find("boy") == -1 and len(
+                        if len(
                                 re.findall(is_contain, general["name"])) != 0:
                             caption += general["name"].replace("_", " ")
                             caption += ","
@@ -219,7 +219,10 @@ from acg2vec.pixiv_illust_danbooru_style_tag a
                 time.sleep(10)
                 continue
             length = len(data_from_db.illust_id)
+            if length == 0:
+                break
             index = data_from_db.illust_id[length - 1]
+
 
             for i in range(length):
                 # 加载并且缩放图片
@@ -240,7 +243,8 @@ from acg2vec.pixiv_illust_danbooru_style_tag a
                         image = self.preprocess(img)
                         yield image, text
                     except Exception as e:
-                        print(e)
+                        #print(e)
+                        continue
             del data_from_db
             gc.collect()
 

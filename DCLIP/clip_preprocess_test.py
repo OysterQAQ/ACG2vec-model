@@ -309,7 +309,7 @@ def _transform(n_px):
 preprocess= _transform(224)
 image = preprocess(
   # Image.open(requests.get(image_url).content)
-   Image.open('/Volumes/Data/oysterqaq/Desktop/f36bf9532c6f4fd392ac98f113c40c6b.jpeg')
+   Image.open('/Volumes/Data/oysterqaq/Desktop/108557696_p0_master1200.jpg')
 ).unsqueeze(0)
 
 print(image.shape)
@@ -319,7 +319,7 @@ plt.show()
 print(image)
 
 
-pic = open("/Volumes/Data/oysterqaq/Desktop/f36bf9532c6f4fd392ac98f113c40c6b.jpeg", "rb")
+pic = open("/Volumes/Data/oysterqaq/Desktop/108557696_p0_master1200.jpg", "rb")
 pic_base64 = base64.urlsafe_b64encode(pic.read())
 
 img = Base64DecoderLayer([224, 224])(tf.stack([tf.convert_to_tensor(pic_base64)]))
@@ -332,7 +332,7 @@ print(img.shape)
 print((img[0]-image[0])[0])
 
 from PIL import Image
-im = Image.open(r"/Volumes/Data/oysterqaq/Desktop/f36bf9532c6f4fd392ac98f113c40c6b.jpeg")
+im = Image.open(r"/Volumes/Data/oysterqaq/Desktop/108557696_p0_master1200.jpg")
 
 
 min_width = 224
