@@ -24,7 +24,7 @@ model = SentenceTransformer('sentence-transformers/distiluse-base-multilingual-c
 
 
 # load dataset
-# engine = sqlalchemy.create_engine('mysql+pymysql://root:Cheerfun.dev@local.ipv4.host:3306/deepix?charset=utf8')
+# engine = sqlalchemy.create_engine('mysql+pymysql://root:Cheerfun.dev@local.ipv4.host:3306/pix2score?charset=utf8')
 # sql = "select sentence_1,sentence_2 from fine_tune_st_dataset where id< 35708121"
 # data_from_db = pd.read_sql(sql, engine)
 # dataset = []

@@ -10,7 +10,7 @@ mixed_precision.set_global_policy(policy)
 
 
 
-model = keras.models.load_model('/Volumes/Data/oysterqaq/PycharmProjects/ACG2vec-model/deepix/model-resnet_custom_v3.h5', compile=False)
+model = keras.models.load_model('/Volumes/Data/oysterqaq/PycharmProjects/ACG2vec-model/pix2score/model-resnet_custom_v3.h5', compile=False)
 outputs = model.get_layer('add_43').output
 outputs = GlobalAveragePooling2D()(outputs)
 feature_extract_model = keras.Model(inputs=model.input, outputs=outputs)

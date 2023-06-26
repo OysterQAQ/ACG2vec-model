@@ -26,7 +26,7 @@ select illust_id,img_path,
 from deepix_data 
 where illust_id < %s  order by illust_id desc limit %s 
 '''
-engine = sqlalchemy.create_engine('mysql+pymysql://root:Cheerfun.dev@local.ipv4.host:3306/deepix?charset=utf8')
+engine = sqlalchemy.create_engine('mysql+pymysql://root:Cheerfun.dev@local.ipv4.host:3306/pix2score?charset=utf8')
 offset = 160000
 httpclient = urllib3.PoolManager()
 min_deepix_train_index = 60000000

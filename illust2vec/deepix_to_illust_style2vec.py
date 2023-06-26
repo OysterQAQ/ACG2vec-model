@@ -14,7 +14,7 @@ def gram_matrix(input_tensor):
   return result/(num_locations)
 
 
-model = keras.models.load_model('/Volumes/Data/oysterqaq/PycharmProjects/ACG2vec-model/deepix/model-resnet_custom_v3.h5', compile=False)
+model = keras.models.load_model('/Volumes/Data/oysterqaq/PycharmProjects/ACG2vec-model/pix2score/model-resnet_custom_v3.h5', compile=False)
 gram_matrix_layer=tf.keras.layers.Lambda(gram_matrix)
 add = gram_matrix_layer(model.get_layer('add').output)
 add_1 = gram_matrix_layer(model.get_layer('add_1').output)

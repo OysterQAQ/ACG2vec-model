@@ -20,7 +20,7 @@ class KVIterableDataset(torch.utils.data.IterableDataset):
         self.redis_conn = redis.Redis(host='local.ipv4.host', port=6379, password='', db=0)
         self.sql = 'select id,sentence_1,sentence_2 from fine_tune_st_dataset where id > %s limit %s'
         self.engine = sqlalchemy.create_engine(
-            'mysql+pymysql://root:Cheerfun.dev@local.ipv4.host:3306/deepix?charset=utf8')
+            'mysql+pymysql://root:Cheerfun.dev@local.ipv4.host:3306/pix2score?charset=utf8')
 
     def _sample_generator(self,worker_id,start,end):
         index=start

@@ -111,7 +111,7 @@ def create_swin_deepix(path):
     restrict_predict = _output_layer(x, 'restrict_predict', 3, 'softmax')
     x_restrict_predict = _output_layer(x, 'x_restrict_predict', 3, 'softmax')
     output = [bookmark_predict, view_predict, sanity_predict, restrict_predict, x_restrict_predict]
-    model = models.Model(inputs=deepdanbooru.input, outputs=output, name='deepix')
+    model = models.Model(inputs=deepdanbooru.input, outputs=output, name='pix2score')
     return model
 
 
@@ -608,7 +608,7 @@ def pure_swin(input_size=224):
     view_predict = _output_layer(x, 'view_predict', 15, 'softmax')
     sanity_predict = _output_layer(x, 'sanity_predict', 5, 'softmax')
     output = [bookmark_predict, view_predict, sanity_predict]
-    model = models.Model(inputs=input, outputs=output, name='deepix')
+    model = models.Model(inputs=input, outputs=output, name='pix2score')
     return model
 
 def pure_resnet(input_size=224):
@@ -626,12 +626,12 @@ def pure_resnet(input_size=224):
     view_predict = _output_layer(x, 'view_predict', 15, 'softmax')
     sanity_predict = _output_layer(x, 'sanity_predict', 5, 'softmax')
     output = [bookmark_predict, view_predict, sanity_predict]
-    model = models.Model(inputs=input, outputs=output, name='deepix')
+    model = models.Model(inputs=input, outputs=output, name='pix2score')
     return model
 
 # input_shape = (4, 224, 224, 3)
 # x = tf.random.normal(input_shape)
-# #model=deepix('model-resnet_custom_v3.h5')
+# #model=pix2score('model-resnet_custom_v3.h5')
 # model=SwinTransformer('swin_base_224',pretrained=False)
 # #model.build([1, 224, 224, 3])
 # #print(model(x))
@@ -648,7 +648,7 @@ def pure_resnet(input_size=224):
 #
 #
 # model.summary()
-# model=deepix('model-resnet_custom_v3.h5')
+# model=pix2score('model-resnet_custom_v3.h5')
 # input_shape = (4, 512, 512, 3)
 # model.build([1, 512, 512, 3])
 # x = tf.random.normal(input_shape)

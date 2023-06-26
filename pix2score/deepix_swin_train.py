@@ -8,8 +8,7 @@ from tensorflow.keras import mixed_precision
 import argparse
 
 from deepix_resnet_swin_transformer import create_swin_deepix
-from swin_dataset_generator import build_dataset
-from utils import ouput_model_arch_to_image
+from pix2score.dataset.swin_dataset_generator import build_dataset
 
 policy = mixed_precision.Policy('mixed_float16')
 mixed_precision.set_global_policy(policy)
@@ -159,8 +158,8 @@ epoch_index = 0 if redis_conn.get(redis_epoch_key) is None else int(redis_conn.g
 
 
 model = build_model(model_config)
-#ouput_model_arch_to_image(model,'deepix.jpg')
-# model.save('/Volumes/Data/oysterqaq/Desktop/deepix.h5')
+#ouput_model_arch_to_image(model,'pix2score.jpg')
+# model.save('/Volumes/Data/oysterqaq/Desktop/pix2score.h5')
 
 
 # 从check_point加载参数

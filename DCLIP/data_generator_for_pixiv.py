@@ -62,7 +62,7 @@ class PixivIterableDataset(torch.utils.data.IterableDataset):
 from  pixivic_crawler.illusts where illust_id > %s and total_bookmarks > 50 limit  %s
      """
         self.engine = sqlalchemy.create_engine(
-            'mysql+pymysql://root:Cheerfun.dev@local.ipv4.host:3306/deepix?charset=utf8')
+            'mysql+pymysql://root:Cheerfun.dev@local.ipv4.host:3306/pix2score?charset=utf8')
         self.preprocess = preprocess
         self.httpclient = urllib3.PoolManager()
 

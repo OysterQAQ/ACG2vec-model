@@ -1,6 +1,6 @@
-/deepix/model-resnet_custom_v3.h5
+/pix2score/model-resnet_custom_v3.h5
 /rec
 
-/deepix/deepix.jpg
-/deepix/model-resnet_custom_v3_float16.h5
-/deepix/deepix-swin.jpg
+/pix2score/deepix.jpg
+/pix2score/model-resnet_custom_v3_float16.h5
+/pix2score/deepix-swin.jpg

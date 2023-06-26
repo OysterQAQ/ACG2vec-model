@@ -10,6 +10,7 @@ policy = mixed_precision.Policy('float32')
 mixed_precision.set_global_policy(policy)
 
 
+
 class Base64DecoderLayer(tf.keras.layers.Layer):
   """
   Convert a incoming base 64 string into an bitmap with rgb values between 0 and 1
@@ -46,12 +47,25 @@ def export_model_as_float32(temporary_model, checkpoint_path, export_path):
   checkpoint.restore(manager.latest_checkpoint).expect_partial()
 
   temporary_model.save(export_path, include_optimizer=False)
-# config_name = 'deepix_v4'
-# config_path = 'config/' + config_name + '.json'
-# with open(config_path, 'r') as load_f:
-#     model_config = json.load(load_f)
-# model = build_model(model_config)
-# export_model_as_float32(model,'/Volumes/Data/oysterqaq/Desktop/00000111.h5','/Volumes/Data/oysterqaq/Desktop/pix2score')
+config_name = 'deepix_v4'
+config_path = 'config/' + config_name + '.json'
+with open(config_path, 'r') as load_f:
+    model_config = json.load(load_f)
+model = build_model(model_config)
+
+trained_model = tf.keras.models.load_model('/Volumes/Home/oysterqaq/Desktop/0182.ckpt',compile=False)
+model.set_weight(trained_model.get_weights())
+model.load_weights('/Volumes/Home/oysterqaq/PycharmProjects/ACG2vec-model/pix2score/model_weight_history/deepix_v4/00000181.h5')
+image = tf.io.decode_image(tf.io.read_file('/Volumes/Home/oysterqaq/Downloads/109281305_p0_master1200.jpg'),
+                               channels=3)
+image = tf.image.resize(image, [224, 224])
+image /= 255.0
+image = tf.expand_dims(image, axis=0)
+p = model.predict(image)
+print(p)
+
+export_model_as_float32(model,'/Volumes/Home/oysterqaq/PycharmProjects/ACG2vec-model/pix2score/model_weight_history/deepix_v4/00000181.h5','/Volumes/Data/oysterqaq/Desktop/pix2score')
+
 # model.load_weights('/Volumes/Data/oysterqaq/Desktop/00000111.h5')
 #
 # pix2score = keras.models.load_model('/Volumes/Data/oysterqaq/Desktop/pix2score', compile=False)

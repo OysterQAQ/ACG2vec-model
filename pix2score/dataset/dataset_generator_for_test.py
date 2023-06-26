@@ -89,7 +89,7 @@ from deepix_data
 where illust_id between %s and %s  order by illust_id
 '''
 
-db_connection = pymysql.connect(host="local.ipv4.host", user="root", password="Cheerfun.dev", db="deepix")
+db_connection = pymysql.connect(host="local.ipv4.host", user="root", password="Cheerfun.dev", db="pix2score")
 httpclient = urllib3.PoolManager()
 
 offset = 50000

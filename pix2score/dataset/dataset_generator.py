@@ -35,7 +35,7 @@ class DataSetGenerator:
                 
                     '''
         self.engine = sqlalchemy.create_engine(
-            'mysql+pymysql://root:Cheerfun.dev@local.ipv4.host:3306/deepix?charset=utf8')
+            'mysql+pymysql://root:Cheerfun.dev@local.ipv4.host:3306/pix2score?charset=utf8')
         self.offset = 32000
         self.httpclient = urllib3.PoolManager()
         if self.test:
@@ -251,7 +251,7 @@ class DataSetGenerator:
         return dataset
 
     def del_404_illust(self, illust_id):
-        conn = pymysql.connect(host='local.ipv4.host', user='root', passwd="Cheerfun.dev", db='deepix')
+        conn = pymysql.connect(host='local.ipv4.host', user='root', passwd="Cheerfun.dev", db='pix2score')
         cur = conn.cursor()
         cur.execute(self.sql_delete % illust_id)
         for r in cur:
@@ -290,7 +290,7 @@ class DataSetGenerator:
 # limit %s
 # '''
 #
-# engine = sqlalchemy.create_engine('mysql+pymysql://root:Cheerfun.dev@local.ipv4.host:3306/deepix?charset=utf8')
+# engine = sqlalchemy.create_engine('mysql+pymysql://root:Cheerfun.dev@local.ipv4.host:3306/pix2score?charset=utf8')
 # engine_2 = sqlalchemy.create_engine(
 #     'mysql+pymysql://root:Cheerfun.dev@local.ipv4.host:3306/pixivic_crawler?charset=utf8')
 # offset = 160000
