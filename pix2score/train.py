@@ -231,6 +231,7 @@ dataset = tf.data.Dataset.load('/repository/deepix-ds')
 dataset = dataset.batch(160)
 dataset = dataset.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
 dataset = dataset.apply(tf.data.experimental.ignore_errors())
+dataset = dataset.take(100)
 callbacks = []
 if args.test:
     callbacks.append(tf.keras.callbacks.TensorBoard(log_dir=log_dir, update_freq=tensorBoard_update_freq))
@@ -247,4 +248,4 @@ if args.h5:
     callbacks.append([tf.keras.callbacks.ModelCheckpoint(save_weight_history_path + '/{epoch:08d}.h5',
                                                          period=1, save_freq='epoch', save_weights_only=True)])
 # model.summary()
-model.fit(dataset, epochs=args.epoch, steps_per_epoch=None, callbacks=callbacks, initial_epoch=181)
+model.fit(dataset, epochs=args.epoch, steps_per_epoch=None, callbacks=callbacks, initial_epoch=epoch_index)
