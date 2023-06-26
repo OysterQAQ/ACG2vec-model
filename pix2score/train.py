@@ -1,7 +1,8 @@
 import argparse
 import json
 import os
-
+os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"  # see issue #152
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 import redis
 import tensorflow as tf
 import tensorflow_addons as tfa
@@ -11,8 +12,7 @@ from deepix import create_acg2vec_pixiv_predict_model
 from deepix_resnet_swin_transformer import create_swin_deepix, pure_resnet
 from swin_transformer import pure_swin
 
-os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"  # see issue #152
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+
 policy = mixed_precision.Policy('mixed_float16')
 mixed_precision.set_global_policy(policy)
 

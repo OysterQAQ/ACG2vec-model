@@ -2,7 +2,7 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.keras import Model, layers, models
 from tensorflow.keras.layers import Dense, Dropout, Conv2D, LayerNormalization, GlobalAveragePooling1D
-
+from pcgrad import PCGradWarp
 CFGS = {
     'swin_tiny_224': dict(input_size=(224, 224), window_size=7, embed_dim=96, depths=[2, 2, 6, 2],
                           num_heads=[3, 6, 12, 24]),
@@ -513,7 +513,8 @@ def pure_swin():
     view_predict = _output_layer(x, 'view_predict', 15, 'softmax')
     sanity_predict = _output_layer(x, 'sanity_predict', 5, 'softmax')
     output = [bookmark_predict, view_predict, sanity_predict]
-    model = models.Model(inputs=input, outputs=output, name='pix2score')
+    #model = models.Model(inputs=input, outputs=output, name='pix2score')
+    model = PCGradWarp(inputs=input, outputs=output, name='pix2score')
     return model
 
 
