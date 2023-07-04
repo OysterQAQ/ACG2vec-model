@@ -3,6 +3,9 @@ import clip
 from torch import optim, nn
 import time
 import warnings
+
+from torch.utils.data import ChainDataset
+
 warnings.filterwarnings("ignore")
 from DCLIP.data_generator import DanbooruIterableDataset,PixivIterableDataset
 from PIL import Image
@@ -29,10 +32,12 @@ model, preprocess = clip.load("ViT-L/14", device=device, jit=False)  # Must set 
 
 # use your own data
 
-ds = DanbooruIterableDataset(start=0, end=2996459, offset=2000, )
-ds_pixiv = PixivIterableDataset()
-dataloader = torch.utils.data.DataLoader(ds, num_workers=10,batch_size=40)
-dataloader_pixiv = torch.utils.data.DataLoader(ds_pixiv, num_workers=10,batch_size=40)
+ds_danbooru = DanbooruIterableDataset(offset=2000, )
+ds_pixiv = PixivIterableDataset(offset=2000)
+dataset = ChainDataset([ds_pixiv,ds_danbooru ])
+#ds_pixiv = PixivIterableDataset()
+#dataset= ChainDataset([ds, ds_pixiv])
+dataloader = torch.utils.data.DataLoader(dataset, num_workers=10,batch_size=40)
 
 # https://github.com/openai/CLIP/issues/57
 def convert_models_to_fp32(model):
@@ -53,7 +58,7 @@ optimizer = optim.Adam(model.parameters(), lr=4e-6, betas=(0.9, 0.98), eps=1e-6,
 EPOCH=7
 batchs=100079
 batchs_pixiv=0
-checkpoint = torch.load("model_checkpoint/dclip_7.pt")
+checkpoint = torch.load("model_checkpoint/dclip_15.pt")
 
 # Use these 3 lines if you use default model setting(not training setting) of the clip. For example, if you set context_length to 100 since your string is very long during training, then assign 100 to checkpoint['model_state_dict']["context_length"]
 #checkpoint['model_state_dict']["input_resolution"] = model.input_resolution #default is 224
@@ -67,7 +72,7 @@ gc.collect()
 for epoch in range(0,EPOCH):
     print("当前训练到 epoch: " + str(epoch))
     batch_index = 1
-    for batch in dataloader_pixiv:
+    for batch in dataloader:
         batch_index+=1
         optimizer.zero_grad()
 
@@ -101,7 +106,7 @@ for epoch in range(0,EPOCH):
         'model_state_dict': model.state_dict(),
         'optimizer_state_dict': optimizer.state_dict(),
         'loss': total_loss,
-    }, "model_checkpoint/dclip_7_pixiv"+str(epoch)+".pt")  # just change to your preferred folder/filename
+    }, "model_checkpoint/dclip_15_pixiv"+str(epoch)+".pt")  # just change to your preferred folder/filename
     print("Saved model to model_checkpoint/dclip_7_pixiv"+str(epoch)+".pt")
     print('')
 

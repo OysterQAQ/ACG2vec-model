@@ -52,15 +52,15 @@ config_path = 'config/' + config_name + '.json'
 with open(config_path, 'r') as load_f:
     model_config = json.load(load_f)
 model = build_model(model_config)
-
-trained_model = tf.keras.models.load_model('/Volumes/Home/oysterqaq/Desktop/0182.ckpt',compile=False)
-model.set_weight(trained_model.get_weights())
+model.summary()
+# trained_model = tf.keras.models.load_model('/Volumes/Home/oysterqaq/Desktop/0182.ckpt',compile=False)
+# model.set_weight(trained_model.get_weights())
 model.load_weights('/Volumes/Home/oysterqaq/PycharmProjects/ACG2vec-model/pix2score/model_weight_history/deepix_v4/00000181.h5')
 image = tf.io.decode_image(tf.io.read_file('/Volumes/Home/oysterqaq/Downloads/109281305_p0_master1200.jpg'),
                                channels=3)
 image = tf.image.resize(image, [224, 224])
 image /= 255.0
-image = tf.expand_dims(image, axis=0)
+image = tf.stack([image, image])
 p = model.predict(image)
 print(p)
 
