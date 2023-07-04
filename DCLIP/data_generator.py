@@ -310,7 +310,6 @@ from (select * from acg2vec.pixiv_illust_with_danbooru_style_tag where illust_id
                 # tokenize语句
                 # 返回
                 # 过长截断 不行的话用huggingface的
-                print(caption)
                 text_1 = clip.tokenize(texts=caption, truncate=True)
                 text_2= None
                 if caption_2 is not None:
