@@ -8,6 +8,9 @@ from DCLIP.data_generator import DanbooruIterableDataset
 from PIL import Image
 # Latest Update : 18 July 2022, 09:55 GMT+7
 import gc
+import os
+
+os.environ['KMP_DUPLICATE_LIB_OK']='True'
 # TO ADD :
 # Gradient Checkpointing
 # Filter out bias from weight decay
@@ -33,7 +36,7 @@ def convert_models_to_fp32(model):
 
 
 
-checkpoint = torch.load("/Volumes/Data/oysterqaq/Desktop/dclip_7.pt",map_location=torch.device('cpu'))
+checkpoint = torch.load("/Volumes/Home/oysterqaq/Desktop/dclip_15_pixiv6.pt",map_location=torch.device('cpu'))
 
 model.load_state_dict(checkpoint['model_state_dict'])
 if device == "cpu":
@@ -43,8 +46,8 @@ else:
 del checkpoint
 gc.collect()
 
-image = preprocess(Image.open("/Volumes/Data/oysterqaq/Desktop/3.jpg")).unsqueeze(0).to(device)
-text = clip.tokenize(["Azur Lane", "3 girl with sword", "8 ninja", "a cat"]).to(device)
+image = preprocess(Image.open("/Volumes/Home/oysterqaq/Downloads/example2.jpg")).unsqueeze(0).to(device)
+text = clip.tokenize(["Azur Lane", "3 girl with sword", "8 ninja", "daiyousei and cirno"]).to(device)
 
 with torch.no_grad():
     image_features = model.encode_image(image)
@@ -56,6 +59,6 @@ with torch.no_grad():
 
 print("Label probs:", probs)  # prints: [[0.9927937  0.00421068 0.00299572]]
 
-torch.save(model, "/Volumes/Data/oysterqaq/Desktop/dclip_2023_05_18.pt")
+torch.save(model, "/Volumes/Home/oysterqaq/Desktop/dclip_2023_07_18.pt")
 
 #torch.save(model, "/Volumes/Data/oysterqaq/Desktop/dclip_2023_05_18.pt")

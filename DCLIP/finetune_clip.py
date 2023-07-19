@@ -7,7 +7,7 @@ import warnings
 from torch.utils.data import ChainDataset
 
 warnings.filterwarnings("ignore")
-from DCLIP.data_generator import DanbooruIterableDataset,PixivIterableDataset
+from DCLIP.data_generator import DanbooruIterableDataset, PixivIterableDataset, DCLIPIterableDataset
 from PIL import Image
 # Latest Update : 18 July 2022, 09:55 GMT+7
 import gc
@@ -32,12 +32,13 @@ model, preprocess = clip.load("ViT-L/14", device=device, jit=False)  # Must set 
 
 # use your own data
 
-ds_danbooru = DanbooruIterableDataset(offset=2000, )
-ds_pixiv = PixivIterableDataset(offset=2000)
-dataset = ChainDataset([ds_pixiv,ds_danbooru ])
+# ds_danbooru = DanbooruIterableDataset(offset=2000, )
+# ds_pixiv = PixivIterableDataset(offset=2000)
+# dataset = ChainDataset([ds_pixiv,ds_danbooru ])
+dataset = DCLIPIterableDataset()
 #ds_pixiv = PixivIterableDataset()
 #dataset= ChainDataset([ds, ds_pixiv])
-dataloader = torch.utils.data.DataLoader(dataset, num_workers=10,batch_size=40)
+dataloader = torch.utils.data.DataLoader(dataset, num_workers=20,batch_size=40)
 
 # https://github.com/openai/CLIP/issues/57
 def convert_models_to_fp32(model):
@@ -53,12 +54,14 @@ else:
 
 loss_img = nn.CrossEntropyLoss()
 loss_txt = nn.CrossEntropyLoss()
-optimizer = optim.Adam(model.parameters(), lr=4e-6, betas=(0.9, 0.98), eps=1e-6,
-                       weight_decay=0.001)  # Params used from paper, the lr is smaller, more safe for fine tuning to new dataset
+# optimizer = optim.Adam(model.parameters(), lr=4e-6, betas=(0.9, 0.98), eps=1e-6,
+#                        weight_decay=0.001)  # Params used from paper, the lr is smaller, more safe for fine tuning to new dataset
+optimizer = optim.Adam(model.parameters(), lr=2e-6, betas=(0.9, 0.98), eps=1e-6,
+                       weight_decay=0.0001)  # Params used from paper, the lr is smaller, more safe for fine tuning to new dataset
 EPOCH=7
-batchs=100079
+batchs=238931
 batchs_pixiv=0
-checkpoint = torch.load("model_checkpoint/dclip_15.pt")
+checkpoint = torch.load("model_checkpoint/dclip_15_pixiv0.pt")
 
 # Use these 3 lines if you use default model setting(not training setting) of the clip. For example, if you set context_length to 100 since your string is very long during training, then assign 100 to checkpoint['model_state_dict']["context_length"]
 #checkpoint['model_state_dict']["input_resolution"] = model.input_resolution #default is 224
@@ -69,7 +72,7 @@ checkpoint = torch.load("model_checkpoint/dclip_15.pt")
 model.load_state_dict(checkpoint['model_state_dict'])
 del checkpoint
 gc.collect()
-for epoch in range(0,EPOCH):
+for epoch in range(1,EPOCH):
     print("当前训练到 epoch: " + str(epoch))
     batch_index = 1
     for batch in dataloader:
@@ -107,7 +110,7 @@ for epoch in range(0,EPOCH):
         'optimizer_state_dict': optimizer.state_dict(),
         'loss': total_loss,
     }, "model_checkpoint/dclip_15_pixiv"+str(epoch)+".pt")  # just change to your preferred folder/filename
-    print("Saved model to model_checkpoint/dclip_7_pixiv"+str(epoch)+".pt")
+    print("Saved model to model_checkpoint/dclip_15_pixiv"+str(epoch)+".pt")
     print('')
 
 #

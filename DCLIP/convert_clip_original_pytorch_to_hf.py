@@ -22,7 +22,9 @@ from clip import load
 
 from transformers import CLIPConfig, CLIPModel
 
+import os
 
+os.environ['KMP_DUPLICATE_LIB_OK']='True'
 def copy_attn_layer(hf_attn_layer, pt_attn_layer):
     q_proj, k_proj, v_proj = pt_attn_layer.in_proj_weight.chunk(3, dim=0)
     q_proj_bias, k_proj_bias, v_proj_bias = pt_attn_layer.in_proj_bias.chunk(3, dim=0)
@@ -162,4 +164,4 @@ def convert_clip_checkpoint(checkpoint_path, pytorch_dump_folder_path, config_pa
 #     convert_clip_checkpoint(args.checkpoint_path, args.pytorch_dump_folder_path, args.config_path)
 
 
-convert_clip_checkpoint("/Volumes/Data/oysterqaq/Desktop/dclip_7.pt", "/Volumes/Data/oysterqaq/Desktop/dclip_hf","/Volumes/Data/oysterqaq/Desktop/config.json")
+convert_clip_checkpoint("/Volumes/Home/oysterqaq/Desktop/dclip_15_pixiv6.pt", "/Volumes/Home/oysterqaq/Desktop/dclip_hf","/Volumes/Home/oysterqaq/Desktop/config.json")
