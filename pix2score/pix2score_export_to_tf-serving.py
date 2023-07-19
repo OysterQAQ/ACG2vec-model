@@ -11,31 +11,31 @@ from pix2score.utils import ouput_model_arch_to_image
 
 policy = mixed_precision.Policy('float32')
 mixed_precision.set_global_policy(policy)
-
+np.set_printoptions(suppress=True)
 
 class Base64DecoderLayer(tf.keras.layers.Layer):
-    """
+  """
   Convert a incoming base 64 string into an bitmap with rgb values between 0 and 1
   target_size e.g. [width,height]
   """
 
-    def __init__(self, target_size):
-        self.target_size = target_size
-        super(Base64DecoderLayer, self).__init__()
+  def __init__(self, target_size):
+    self.target_size = target_size
+    super(Base64DecoderLayer, self).__init__()
 
-    def byte_to_img(self, byte_tensor):
-        # base64 decoding id done by tensorflow serve, when using b64 json
-        byte_tensor = tf.io.decode_base64(byte_tensor)
-        imgs_map = tf.io.decode_image(byte_tensor, channels=3)
-        imgs_map.set_shape((None, None, 3))
-        img = tf.image.resize(imgs_map, self.target_size)
-        img = tf.cast(img, dtype=tf.float32) / 255
-        return img
+  def byte_to_img(self, byte_tensor):
+    # base64 decoding id done by tensorflow serve, when using b64 json
+    byte_tensor = tf.io.decode_base64(byte_tensor)
+    imgs_map = tf.io.decode_image(byte_tensor,channels=3)
+    imgs_map.set_shape((None, None, 3))
+    img = tf.image.resize(imgs_map, self.target_size)
+    img = tf.cast(img, dtype=tf.float32) / 255
+    return img
 
-    def call(self, input, **kwargs):
-        with tf.device("/cpu:0"):
-            imgs_map = tf.map_fn(self.byte_to_img, input, dtype=tf.float32)
-        return imgs_map
+  def call(self, input, **kwargs):
+    with tf.device("/cpu:0"):
+      imgs_map = tf.map_fn(self.byte_to_img, input, dtype=tf.float32)
+    return imgs_map
 
 
 def export_model_as_float32(temporary_model, checkpoint_path, export_path):
@@ -80,13 +80,13 @@ for layer in model.layers:
         continue
 # trained_model = tf.keras.models.load_model('/Volumes/Home/oysterqaq/Desktop/0182.ckpt',compile=False)
 # model.set_weight(trained_model.get_weights())
-model.load_weights('/Volumes/Home/oysterqaq/Desktop/00000181.h5')
+model.load_weights('/Volumes/Home/oysterqaq/Desktop/00000182.h5')
 # check_and_initialize_nan_weights(model)
-image = tf.io.decode_image(tf.io.read_file('/Volumes/Home/oysterqaq/Downloads/109779063_p0.png'),
+image = tf.io.decode_image(tf.io.read_file('/Volumes/Home/oysterqaq/Desktop/110058474_p0_master1200.jpg'),
                            channels=3)
 image = tf.image.resize(image, [224, 224])
 image /= 255.0
-image = tf.stack([image, image])
+image = tf.stack([ image])
 # layer_outputs = [image]  # 存储每一层的输出
 # for layer in model.layers:
 #
@@ -107,41 +107,41 @@ image = tf.stack([image, image])
 #         hasattr(bn, 'moving_variance_initializer'):
 #     bn.set_weights([bn.kernel_initializer(shape=np.asarray(bn.kernel.shape)),bn.bias_initializer(shape=np.asarray(bn.bias.shape))])
 #ouput_model_arch_to_image(res, '/Volumes/Home/oysterqaq/Desktop/res.jpg')
-res = model.get_layer('resnet101v2')
-bn = res.get_layer('conv5_block3_1_bn')
-post_bn = res.get_layer('post_bn')
-bn_2 = res.get_layer('conv5_block3_2_bn')
-bn_2.set_weights([bn_2.weights[0],bn_2.weights[1],bn_2.moving_mean_initializer(shape=np.asarray(bn_2.moving_mean.shape)),bn_2.moving_variance_initializer(shape=np.asarray(bn_2.moving_variance.shape))])
-post_bn.set_weights([post_bn.weights[0],post_bn.weights[1],post_bn.moving_mean_initializer(shape=np.asarray(post_bn.moving_mean.shape)),post_bn.moving_variance_initializer(shape=np.asarray(post_bn.moving_variance.shape))])
-input = tf.keras.Input(shape=(224, 224, 3), name="input")
-sub = keras.Model(inputs=res.input, outputs=res.get_layer('conv5_block3_out').output)
-output = sub(input)
-submodel = keras.Model(inputs=input, outputs=output)
-submodel.summary()
-print(submodel(image))
+# res = model.get_layer('resnet101v2')
+# bn = res.get_layer('conv5_block3_1_bn')
+# post_bn = res.get_layer('post_bn')
+# bn_2 = res.get_layer('conv5_block3_2_bn')
+#bn_2.set_weights([bn_2.weights[0],bn_2.weights[1],bn_2.moving_mean_initializer(shape=np.asarray(bn_2.moving_mean.shape)),bn_2.moving_variance_initializer(shape=np.asarray(bn_2.moving_variance.shape))])
+#post_bn.set_weights([post_bn.weights[0],post_bn.weights[1],post_bn.moving_mean_initializer(shape=np.asarray(post_bn.moving_mean.shape)),post_bn.moving_variance_initializer(shape=np.asarray(post_bn.moving_variance.shape))])
+# input = tf.keras.Input(shape=(224, 224, 3), name="input")
+# sub = keras.Model(inputs=res.input, outputs=res.get_layer('conv5_block3_out').output)
+# output = sub(input)
+# submodel = keras.Model(inputs=input, outputs=output)
+# submodel.summary()
+# print(submodel(image))
 
 p = model.predict(image)
 print(p)
 
-# export_model_as_float32(model,'/Volumes/Home/oysterqaq/PycharmProjects/ACG2vec-model/pix2score/model_weight_history/deepix_v4/00000181.h5','/Volumes/Data/oysterqaq/Desktop/pix2score')
+export_model_as_float32(model,'/Volumes/Home/oysterqaq/Desktop/00000182.h5','/Volumes/Home/oysterqaq/Desktop/pix2score')
 
 # model.load_weights('/Volumes/Data/oysterqaq/Desktop/00000111.h5')
 #
-# pix2score = keras.models.load_model('/Volumes/Data/oysterqaq/Desktop/pix2score', compile=False)
+pix2score = keras.models.load_model('/Volumes/Home/oysterqaq/Desktop/pix2score', compile=False)
 #
-# inputs = tf.keras.layers.Input(shape=(), dtype=tf.string, name='b64_input_bytes')
-# x=Base64DecoderLayer([224,224])(inputs)
-# x=pix2score(x)
-# base64_model = keras.Model(inputs=inputs, outputs=x)
+inputs = tf.keras.layers.Input(shape=(), dtype=tf.string, name='b64_input_bytes')
+x=Base64DecoderLayer([224,224])(inputs)
+x=pix2score(x)
+base64_model = keras.Model(inputs=inputs, outputs=x)
 #
-# base64_model.save("/Volumes/Data/oysterqaq/Desktop/pix2score_base64_input")
+base64_model.save("/Volumes/Home/oysterqaq/Desktop/pix2score_base64_input")
 
 
 # pix2score = keras.models.load_model('/Volumes/Data/oysterqaq/Desktop/pix2score_base64_input', compile=False)
 # #
 # # style_model.summary()
-# import base64
-# pic = open("/Volumes/Data/oysterqaq/Desktop/107776952_p0_square1200.jpg", "rb")
-# pic_base64 = base64.urlsafe_b64encode(pic.read())
+import base64
+pic = open("/Volumes/Home/oysterqaq/Desktop/110058474_p0_master1200.jpg", "rb")
+pic_base64 = base64.urlsafe_b64encode(pic.read())
 #
-# print(pix2score(tf.stack([tf.convert_to_tensor(pic_base64)])))
+print(base64_model(tf.stack([tf.convert_to_tensor(pic_base64)])))
