@@ -80,13 +80,17 @@ for layer in model.layers:
         continue
 # trained_model = tf.keras.models.load_model('/Volumes/Home/oysterqaq/Desktop/0182.ckpt',compile=False)
 # model.set_weight(trained_model.get_weights())
-model.load_weights('/Volumes/Home/oysterqaq/Desktop/00000182.h5')
+model.load_weights('/Volumes/Home/oysterqaq/Downloads/00000191.h5')
 # check_and_initialize_nan_weights(model)
-image = tf.io.decode_image(tf.io.read_file('/Volumes/Home/oysterqaq/Desktop/110058474_p0_master1200.jpg'),
+image = tf.io.decode_image(tf.io.read_file('/Volumes/Home/oysterqaq/Downloads/4.jpeg'),
+                           channels=3)
+image_2 = tf.io.decode_image(tf.io.read_file('/Volumes/Home/oysterqaq/Downloads/3.jpeg'),
                            channels=3)
 image = tf.image.resize(image, [224, 224])
+image_2 = tf.image.resize(image_2, [224, 224])
 image /= 255.0
-image = tf.stack([ image])
+image_2 /= 255.0
+image = tf.stack([ image,image_2])
 # layer_outputs = [image]  # 存储每一层的输出
 # for layer in model.layers:
 #
@@ -123,25 +127,21 @@ image = tf.stack([ image])
 p = model.predict(image)
 print(p)
 
-export_model_as_float32(model,'/Volumes/Home/oysterqaq/Desktop/00000182.h5','/Volumes/Home/oysterqaq/Desktop/pix2score')
-
-# model.load_weights('/Volumes/Data/oysterqaq/Desktop/00000111.h5')
-#
+# #导出
+export_model_as_float32(model,'/Volumes/Home/oysterqaq/Desktop/00000191.h5','/Volumes/Home/oysterqaq/Desktop/pix2score')
 pix2score = keras.models.load_model('/Volumes/Home/oysterqaq/Desktop/pix2score', compile=False)
-#
 inputs = tf.keras.layers.Input(shape=(), dtype=tf.string, name='b64_input_bytes')
 x=Base64DecoderLayer([224,224])(inputs)
 x=pix2score(x)
 base64_model = keras.Model(inputs=inputs, outputs=x)
-#
 base64_model.save("/Volumes/Home/oysterqaq/Desktop/pix2score_base64_input")
 
 
 # pix2score = keras.models.load_model('/Volumes/Data/oysterqaq/Desktop/pix2score_base64_input', compile=False)
 # #
 # # style_model.summary()
-import base64
-pic = open("/Volumes/Home/oysterqaq/Desktop/110058474_p0_master1200.jpg", "rb")
-pic_base64 = base64.urlsafe_b64encode(pic.read())
-#
-print(base64_model(tf.stack([tf.convert_to_tensor(pic_base64)])))
+# import base64
+# pic = open("/Volumes/Home/oysterqaq/Desktop/110058474_p0_master1200.jpg", "rb")
+# pic_base64 = base64.urlsafe_b64encode(pic.read())
+# #
+# print(base64_model(tf.stack([tf.convert_to_tensor(pic_base64)])))
