@@ -80,7 +80,7 @@ for layer in model.layers:
         continue
 # trained_model = tf.keras.models.load_model('/Volumes/Home/oysterqaq/Desktop/0182.ckpt',compile=False)
 # model.set_weight(trained_model.get_weights())
-model.load_weights('/Volumes/Home/oysterqaq/Downloads/00000191.h5')
+model.load_weights('/Volumes/Home/oysterqaq/Downloads/00000200.h5')
 # check_and_initialize_nan_weights(model)
 image = tf.io.decode_image(tf.io.read_file('/Volumes/Home/oysterqaq/Downloads/4.jpeg'),
                            channels=3)
@@ -128,7 +128,7 @@ p = model.predict(image)
 print(p)
 
 # #导出
-export_model_as_float32(model,'/Volumes/Home/oysterqaq/Desktop/00000191.h5','/Volumes/Home/oysterqaq/Desktop/pix2score')
+export_model_as_float32(model,'/Volumes/Home/oysterqaq/Desktop/00000200.h5','/Volumes/Home/oysterqaq/Desktop/pix2score')
 pix2score = keras.models.load_model('/Volumes/Home/oysterqaq/Desktop/pix2score', compile=False)
 inputs = tf.keras.layers.Input(shape=(), dtype=tf.string, name='b64_input_bytes')
 x=Base64DecoderLayer([224,224])(inputs)
