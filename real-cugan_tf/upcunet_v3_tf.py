@@ -255,9 +255,9 @@ class UpCunet2x(tf.keras.Model):
             x = tf.math.add(x0, x)
             if (w0 != pw or h0 != ph): x = x[:, :, :h0 * 2, :w0 * 2]
             if (self.pro):
-                return tf.clip_by_value(tf.math.round(((x - 0.15) * (255 / 0.7))), clip_value_min=0, clip_value_max=255)
+                return tf.cast(tf.clip_by_value(tf.math.round(((x - 0.15) * (255 / 0.7))), clip_value_min=0, clip_value_max=255),dtype=tf.dtypes.uint8)
             else:
-                return tf.clip_by_value(tf.math.round(x * 255), clip_value_min=0, clip_value_max=255)
+                return tf.cast(tf.clip_by_value(tf.math.round(x * 255), clip_value_min=0, clip_value_max=255),dtype=tf.dtypes.uint8)
         elif (tile_mode == 1):  # 对长边减半
             if (w0 >= h0):
                 crop_size_w = ((w0 - 1) // 4 * 4 + 4) // 2  # 减半后能被2整除，所以要先被4整除
@@ -361,9 +361,9 @@ class UpCunet2x(tf.keras.Model):
                     # res[:, i * 2:i * 2 + h1 * 2 - 72, j * 2:j * 2 + w1 * 2 - 72,:].assign(tf.clip_by_value(tf.math.round(
                     #         (x - 0.15) * (255 / 0.7)),clip_value_min=0, clip_value_max=255))
                     temp.append(
-                        tf.clip_by_value(tf.math.round((x - 0.15) * (255 / 0.7)), clip_value_min=0, clip_value_max=255))
+                        tf.cast(tf.clip_by_value(tf.math.round((x - 0.15) * (255 / 0.7)), clip_value_min=0, clip_value_max=255),dtype=tf.dtypes.uint8))
                 else:
-                    temp.append(tf.clip_by_value(tf.math.round((x * 255)), clip_value_min=0, clip_value_max=255))
+                    temp.append(tf.cast(tf.clip_by_value(tf.math.round((x * 255)), clip_value_min=0, clip_value_max=255),dtype=tf.dtypes.uint8))
                     # res[:,  i * 2:i * 2 + h1 * 2 - 72, j * 2:j * 2 + w1 * 2 - 72,:].assign(tf.clip_by_value(tf.math.round((x * 255)),clip_value_min=0, clip_value_max=255))
             # stack
             temp = tf.concat(
