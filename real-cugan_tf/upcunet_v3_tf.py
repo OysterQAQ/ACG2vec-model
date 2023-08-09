@@ -145,7 +145,7 @@ class UNet2(tf.keras.layers.Layer):
                             name=self.name + ".conv5")
 
         if deconv:
-            self.conv_bottom = Conv2DTranspose(filters=out_channels, kernel_size=4, strides=2, padding="same",
+            self.conv_bottom = Conv2DTranspose(filters=out_channels, kernel_size=4, strides=2, padding="valid",
                                                input_shape=(None, None, 64), name=self.name + ".conv_bottom")
         else:
             self.conv_bottom = Conv2D(filters=out_channels, kernel_size=3, strides=1, padding="valid",
@@ -179,6 +179,7 @@ class UNet2(tf.keras.layers.Layer):
         x5 = self.conv5(x1 + x4)
         x5 = LeakyReLU(alpha=0.1)(x5)
         z = self.conv_bottom(x5)
+        z = z[:, 3:-3, 3:-3, :]
         return z
 
     def call_a(self, inputs):
@@ -246,7 +247,7 @@ class UpCunet2x(tf.keras.Model):
             ph = ((h0 - 1) // 2 + 1) * 2
             pw = ((w0 - 1) // 2 + 1) * 2
             # 填充h w 维度 （h前填充，h后填充，w前填充，w后填充）
-            x = tf.pad(x, [[0, 0], [18, 18 + pw - w0], [18, 18 + ph - h0], [0, 0]], 'REFLECT')  # 需要保证被2整除
+            x = tf.pad(x, [[0, 0], [18, 18 + ph - h0],  [18, 18 + pw - w0],[0, 0]], 'REFLECT')  # 需要保证被2整除
             x = self.unet1(x)
             x0 = self.unet2(x, self.alpha)
             # x = tf.pad(x, (-20, -20, -20, -20))
@@ -477,5 +478,3 @@ tf.keras.utils.save_img(
 # cunet.save("/Volumes/Home/oysterqaq/Desktop/cugan_pro-denoise3x-up2x")
 #
 # model = keras.models.load_model('/Volumes/Home/oysterqaq/Desktop/cugan', compile=False)
-
-
