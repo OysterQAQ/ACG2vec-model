@@ -284,10 +284,13 @@ class UpCunet2x(tf.keras.Model):
         else:
             se_mean0 = tf.zeros((n, 1, 1, 64), dtype=tf.dtypes.float32)
         n_patch = 0
+        #构建四个tensorArray tmp_array_0 tmp_array_1 tmp_array_2 tmp_array_3
+        # tensorArray的索引为i*i_length+j
         tmp_dict = {}
         for i in range(0, h - 36, crop_size[0]):
             tmp_dict[i] = {}
             for j in range(0, w - 36, crop_size[1]):
+                #用tf.TensorArray 将i,j打平成i*length+j
                 x_crop = x[:, i:i + crop_size[0] + 36, j:j + crop_size[1] + 36, :]
                 n, h1, w1, c1 = x_crop.shape
                 tmp0, x_crop = self.unet1.call_a(x_crop)

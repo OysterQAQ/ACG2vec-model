@@ -275,9 +275,11 @@ class UpCunet2x(nn.Module):
             se_mean0 = torch.zeros((n, 64, 1, 1), device=x.device, dtype=torch.float32)
         n_patch = 0
         tmp_list = []
-        for i in range((h - 36)//crop_size[0]):
+        i_length=(h - 36)//crop_size[0]
+        j_length=(w - 36) //crop_size[1]
+        for i in range(i_length):
             tmp_list.append([])
-            for j in range((w - 36) //crop_size[1]):
+            for j in range(j_length):
                 print(f"i:{i},j:{j}")
                 x_crop = x[:, :, i*crop_size[0]:(i +1)* crop_size[0] + 36, j*(crop_size[1]):(j+1)* crop_size[1] + 36]
                 n, c1, h1, w1 = x_crop.shape
@@ -301,51 +303,12 @@ class UpCunet2x(nn.Module):
         else:
             se_mean1 = torch.zeros((n, 128, 1, 1), device=x.device, dtype=torch.float32)
 
-        # for i in range(0, h - 36, crop_size[0]):
-        #     tmp_dict[i] = {}
-        #     for j in range(0, w - 36, crop_size[1]):
-        #         print(f"i:{i},j:{j}")
-        #         x_crop = x[:, :, i:i + crop_size[0] + 36, j:j + crop_size[1] + 36]
-        #         n, c1, h1, w1 = x_crop.shape
-        #         tmp0, x_crop = self.unet1.forward_a(x_crop)
-        #         if (if_half):  # torch.HalfTensor/torch.cuda.HalfTensor
-        #             tmp_se_mean = torch.mean(x_crop.float(), dim=(2, 3), keepdim=True).half()
-        #         else:
-        #             tmp_se_mean = torch.mean(x_crop, dim=(2, 3), keepdim=True)
-        #         se_mean0 += tmp_se_mean
-        #         n_patch += 1
-        #         tmp_dict[i][j] = (tmp0, x_crop)
-        # se_mean0 /= n_patch
-        # if (if_half):
-        #     se_mean1 = torch.zeros((n, 128, 1, 1), device=x.device, dtype=torch.float16)
-        # else:
-        #     se_mean1 = torch.zeros((n, 128, 1, 1), device=x.device, dtype=torch.float32)
         print(f"{'-'*10}")
-        # for i in range(0, h - 36, crop_size[0]):
-        #     for j in range(0, w - 36, crop_size[1]):
-        #         print(f"i:{i},j:{j}")
-        #         tmp0, x_crop = tmp_dict[i][j]
-        #         x_crop = self.unet1.conv2.seblock.forward_mean(x_crop, se_mean0)
-        #         opt_unet1 = self.unet1.forward_b(tmp0, x_crop)
-        #         tmp_x1, tmp_x2 = self.unet2.forward_a(opt_unet1)
-        #         opt_unet1 = F.pad(opt_unet1, (-20, -20, -20, -20))
-        #         if (cache_mode): opt_unet1, tmp_x1 = q(opt_unet1, cache_mode), q(tmp_x1, cache_mode)
-        #         if (if_half):  # torch.HalfTensor/torch.cuda.HalfTensor
-        #             tmp_se_mean = torch.mean(tmp_x2.float(), dim=(2, 3), keepdim=True).half()
-        #         else:
-        #             tmp_se_mean = torch.mean(tmp_x2, dim=(2, 3), keepdim=True)
-        #         if (cache_mode): tmp_x2 = q(tmp_x2, cache_mode)
-        #         se_mean1 += tmp_se_mean
-        #         tmp_dict[i][j] = (opt_unet1, tmp_x1, tmp_x2)
-        # se_mean1 /= n_patch
-        # if (if_half):
-        #     se_mean0 = torch.zeros((n, 128, 1, 1), device=x.device, dtype=torch.float16)
-        # else:
-        #     se_mean0 = torch.zeros((n, 128, 1, 1), device=x.device, dtype=torch.float32)
 
 
-        for i in range((h - 36) // crop_size[0]):
-            for j in range((w - 36) // crop_size[1]):
+
+        for i in range(i_length):
+            for j in range(j_length):
                 print(f"i:{i},j:{j}")
                 tmp0, x_crop =  tmp_list[i][j][0],tmp_list[i][j][1]
                 x_crop = self.unet1.conv2.seblock.forward_mean(x_crop, se_mean0)
@@ -367,14 +330,9 @@ class UpCunet2x(nn.Module):
         else:
             se_mean0 = torch.zeros((n, 128, 1, 1), device=x.device, dtype=torch.float32)
 
-
-
-
-
-
         print(f"{'-' * 10}")
-        for i in range((h - 36) // crop_size[0]):
-            for j in range((w - 36) // crop_size[1]):
+        for i in range(i_length):
+            for j in range(j_length):
                 print(f"i:{i},j:{j}")
                 opt_unet1, tmp_x1, tmp_x2 = tmp_list[i][j][0],tmp_list[i][j][1],tmp_list[i][j][2]
                 if (cache_mode): tmp_x2 = dq(tmp_x2[0], if_half, cache_mode, tmp_x2[1], tmp_x2[2], tmp_x2[3])
@@ -394,8 +352,8 @@ class UpCunet2x(nn.Module):
         else:
             se_mean1 = torch.zeros((n, 64, 1, 1), device=x.device, dtype=torch.float32)
         print(f"{'-' * 10}")
-        for i in range((h - 36) // crop_size[0]):
-            for j in range((w - 36) // crop_size[1]):
+        for i in range(i_length):
+            for j in range(j_length):
                 print(f"i:{i},j:{j}")
                 opt_unet1, tmp_x1, tmp_x2, tmp_x3 = tmp_list[i][j][0],tmp_list[i][j][1],tmp_list[i][j][2],tmp_list[i][j][3]
                 if (cache_mode): tmp_x3 = dq(tmp_x3[0], if_half, cache_mode, tmp_x3[1], tmp_x3[2], tmp_x3[3])
@@ -510,7 +468,7 @@ tile 0
 cache_mode 1
 
     """
-    tile_mode=0
+    tile_mode=1
     cache_mode=0
     alpha=1
     scale=2

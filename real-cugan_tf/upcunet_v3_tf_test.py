@@ -3,7 +3,7 @@ import base64
 import tensorflow as tf
 
 model = tf.saved_model.load('/Volumes/Home/oysterqaq/Desktop/cugan')
-pic = open("inputs/31726597.png", "rb")
+pic = open("inputs/test4.png", "rb")
 pic_base64 = base64.urlsafe_b64encode(pic.read())
 
 
@@ -17,6 +17,6 @@ imgs_map = tf.io.decode_image(tf.io.read_file("inputs/1-1.png"), channels=3)
 file_path = "output/1333.png"
 
 with open(file_path, "wb") as file:
-    binary_data = model(tf.stack([tf.convert_to_tensor(pic_base64)])).numpy()
+    binary_data = model.serve(tf.stack([tf.convert_to_tensor(pic_base64)])).numpy()
 # Example binary data
     file.write(binary_data)
