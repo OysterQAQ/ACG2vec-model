@@ -19,4 +19,5 @@ file_path = "output/1333.png"
 with open(file_path, "wb") as file:
     binary_data = model.serve(tf.stack([tf.convert_to_tensor(pic_base64)])).numpy()
 # Example binary data
+    print(binary_data)
     file.write(binary_data)
