@@ -2,7 +2,7 @@ import base64
 
 import tensorflow as tf
 
-model = tf.saved_model.load('/Volumes/Home/oysterqaq/Desktop/cugan')
+model = tf.saved_model.load('/Volumes/Home/oysterqaq/Desktop/cugan-pro-conservative-up2x_with_tile_tfjs')
 pic = open("inputs/test4.png", "rb")
 pic_base64 = base64.urlsafe_b64encode(pic.read())
 
@@ -17,7 +17,15 @@ imgs_map = tf.io.decode_image(tf.io.read_file("inputs/1-1.png"), channels=3)
 file_path = "output/1333.png"
 
 with open(file_path, "wb") as file:
-    binary_data = model.serve(tf.stack([tf.convert_to_tensor(pic_base64)])).numpy()
-# Example binary data
-    print(binary_data)
-    file.write(binary_data)
+    binary_data = model.serve(tf.stack([tf.convert_to_tensor(pic_base64)]))
+    x = tf.unstack(binary_data, axis=2)
+    x=x[0]
+    print(x.shape)
+    rows = tf.unstack(x, axis=1)
+    rows = [tf.concat(tf.unstack(row), axis=0) for row in rows]
+    rows = tf.concat(rows, axis=1)
+    output_image = tf.io.encode_png(
+            rows
+        )
+
+    file.write(output_image.numpy())
