@@ -433,11 +433,11 @@ def export(model, path):
 
 
 model = build_model("weights_pro/pro-no-denoise-up2x.pth")
-# model.export("/Volumes/Home/oysterqaq/Desktop/cugan-pro-no-denoise-up2x_with_tile_tfjs")
+# model.export("/Volumes/Home/oysterqaq/Desktop/cugan-pro-no-denoise-up2x_with_tile_for_tfjs")
 # model=build_model("weights_pro/pro-denoise3x-up2x.pth")
-# model.export("/Volumes/Home/oysterqaq/Desktop/cugan-pro-denoise3x-up2x_with_tile_tfjs")
+# model.export("/Volumes/Home/oysterqaq/Desktop/cugan-pro-denoise3x-up2x_with_tile_for_tfjs")
 # model=build_model("weights_pro/pro-conservative-up2x.pth")
-# model.export("/Volumes/Home/oysterqaq/Desktop/cugan-pro-conservative-up2x_with_tile_tfjs")
+# model.export("/Volumes/Home/oysterqaq/Desktop/cugan-pro-conservative-up2x_with_tile_for_tfjs")
 pic = open("inputs/test3.jpeg", "rb")
 pic_base64 = base64.urlsafe_b64encode(pic.read())
 file_path = "output/test4.png"
