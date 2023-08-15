@@ -4,7 +4,7 @@ import time
 import tensorflow as tf
 
 
-model = tf.saved_model.load('/Volumes/Home/oysterqaq/Desktop/cugan_jstest_2')
+model = tf.saved_model.load('/Volumes/Home/oysterqaq/Desktop/cugan_jstest')
 
 pic = open("inputs/test4.png", "rb")
 

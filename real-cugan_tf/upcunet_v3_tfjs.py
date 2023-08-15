@@ -618,9 +618,9 @@ def export(model, path):
 
 
 model = build_model("weights_pro/pro-no-denoise-up2x.pth")
-model.save("/Volumes/Home/oysterqaq/Desktop/cugan_jstest_2")
+model.save("/Volumes/Home/oysterqaq/Desktop/cugan_jstest")
 
-model.export("/Volumes/Home/oysterqaq/Desktop/cugan_jstest")
+#model.export("/Volumes/Home/oysterqaq/Desktop/cugan_jstest")
 #tfjs.converters.save_keras_model(model, "/Volumes/Home/oysterqaq/Desktop/cugan_jstest_depoly_2")
 # model=build_model("weights_pro/pro-denoise3x-up2x.pth")
 # model.export("/Volumes/Home/oysterqaq/Desktop/cugan-pro-denoise3x-up2x_with_tile_for_tfjs")
