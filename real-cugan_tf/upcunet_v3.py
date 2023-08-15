@@ -258,7 +258,8 @@ class UpCunet2x(nn.Module):
                 crop_size_w = (w0 - 1) // 2 * 2 + 2  # 能被2整除
             crop_size = (crop_size_h, crop_size_w)
         elif (tile_mode >= 2):
-            tile_mode = min(min(h0, w0) // 128, int(tile_mode))  # 最小短边为128*128
+            tile_mode=min(h0, w0) // 128
+            #tile_mode = min(min(h0, w0) // 128, int(tile_mode))  # 最小短边为128*128
             t2 = tile_mode * 2
             crop_size = (((h0 - 1) // t2 * t2 + t2) // tile_mode, ((w0 - 1) // t2 * t2 + t2) // tile_mode)
         else:
@@ -468,7 +469,7 @@ tile 0
 cache_mode 1
 
     """
-    tile_mode=1
+    tile_mode=3
     cache_mode=0
     alpha=1
     scale=2

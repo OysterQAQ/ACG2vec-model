@@ -21,7 +21,7 @@ class SEBlock(tf.keras.layers.Layer):
         x0 = tf.keras.layers.ReLU()(x0)
         x0 = self.conv2(x0)
         x0 = tf.keras.activations.sigmoid(x0)
-        x = inputs * x0
+        x = tf.math.multiply(inputs , x0)
         return x
 
     def mean_call(self, x, x0):
@@ -29,7 +29,7 @@ class SEBlock(tf.keras.layers.Layer):
         x0 = tf.keras.layers.ReLU()(x0)
         x0 = self.conv2(x0)
         x0 = tf.keras.activations.sigmoid(x0)
-        x = x * x0
+        x = tf.math.multiply(x , x0)
         return x
 
 
@@ -79,13 +79,7 @@ class UNet1(tf.keras.layers.Layer):
         else:
             self.conv_bottom = Conv2D(filters=out_channels, kernel_size=3, strides=1, padding="valid",
                                       input_shape=(None, None, 64), name=self.name + ".conv_bottom")
-        # for m in self.submodules:
-        #     if isinstance(m, (tf.keras.layers.Conv2D, tf.keras.layers.Conv2DTranspose)):
-        #         tf.keras.initializers.HeNormal()(m.weights)
-        #     elif isinstance(m, tf.keras.layers.Dense):
-        #         tf.keras.initializers.RandomNormal(mean=0.0, stddev=0.01)(m.weights)
-        #         if m.bias is not None:
-        #             tf.keras.initializers.Zeros()(m.bias)
+
 
     def call(self, inputs):
         x1 = self.conv1(inputs)
@@ -98,7 +92,7 @@ class UNet1(tf.keras.layers.Layer):
         x2 = self.conv2(x2)
         x2 = self.conv2_up(x2)
         x2 = LeakyReLU(alpha=0.1)(x2)
-        x3 = self.conv3(x1 + x2)
+        x3 = self.conv3(tf.math.add(x1 , x2))
         x3 = LeakyReLU(alpha=0.1)(x3)
         # x3=tf.keras.layers.ZeroPadding2D(padding=3, data_format=None,)(x3)
         z = self.conv_bottom(x3)
@@ -118,7 +112,7 @@ class UNet1(tf.keras.layers.Layer):
     def call_b(self, x1, x2):
         x2 = self.conv2_up(x2)
         x2 = LeakyReLU(alpha=0.1)(x2)
-        x3 = self.conv3(x1 + x2)
+        x3 = self.conv3(tf.math.add(x1 , x2))
         x3 = LeakyReLU(alpha=0.1)(x3)
         z = self.conv_bottom(x3)
         z = z[:, 3:-3, 3:-3, :]
@@ -172,11 +166,11 @@ class UNet2(tf.keras.layers.Layer):
         x3 = self.conv3(x3)
         x3 = self.conv3_up(x3)
         x3 = LeakyReLU(alpha=0.1)(x3)
-        x4 = self.conv4(x2 + x3)
-        x4 *= alpha
+        x4 = self.conv4(tf.math.add(x2 , x3))
+        x4 =tf.math.multiply(x4,alpha)
         x4 = self.conv4_up(x4)
         x4 = LeakyReLU(alpha=0.1)(x4)
-        x5 = self.conv5(x1 + x4)
+        x5 = self.conv5(tf.math.add(x1 , x4))
         x5 = LeakyReLU(alpha=0.1)(x5)
         z = self.conv_bottom(x5)
 
@@ -202,43 +196,65 @@ class UNet2(tf.keras.layers.Layer):
     def call_c(self, x2, x3):  # conv234结尾有se
         x3 = self.conv3_up(x3)
         x3 = LeakyReLU(alpha=0.1)(x3)
-        x4 = self.conv4.conv(x2 + x3)
+        x4 = self.conv4.conv(tf.math.add(x2 , x3))
         return x4
 
     def call_d(self, x1, x4):  # conv234结尾有se
         x4 = self.conv4_up(x4)
         x4 = LeakyReLU(alpha=0.1)(x4)
-        x5 = self.conv5(x1 + x4)
+        x5 = self.conv5(tf.math.add(x1 , x4))
         x5 = LeakyReLU(alpha=0.1)(x5)
         z = self.conv_bottom(x5)
         return z
 
 
 class UpCunet2x(tf.keras.layers.Layer):
-    def __init__(self, in_channels=3, out_channels=3, alpha=1, pro=True, half=False, **kwargs):
+    def __init__(self, in_channels=3, out_channels=3, alpha=1, **kwargs):
         super().__init__(**kwargs)
         self.unet1 = UNet1(in_channels, out_channels, deconv=True, name=self.name + ".unet1")
         self.unet2 = UNet2(in_channels, out_channels, deconv=False, name=self.name + ".unet2")
         self.alpha = alpha
-        self.pro = pro
-        self.half = half
 
     def call(self, inputs):
         x = tf.cast(inputs, dtype=tf.float32) / (
                 255 / 0.7) + 0.15
+
+
+
+        # 填充h w 维度 （h前填充，h后填充，w前填充，w后填充）
+        #return self.forward_with_tile(x, ph, h0, pw, w0)
+        return self.forward_with_tile_2(x)
+        #return self.forward_withoput_tile(x, ph, h0, pw, w0)
+
+        # tile_mode = tf.cond(h0 > w0, lambda: h0 // 1080, lambda: w0 // 1080)
+        # return tf.cond(tile_mode == 0, lambda: self.forward_withoput_tile(x, ph, h0, pw, w0),
+        #                lambda: self.forward_with_tile(x, ph, h0, pw, w0))
+
+
+    def forward_withoput_tile(self,x):
         input_tensor_shape = tf.shape(x)
         n, h0, w0, c = input_tensor_shape[0], input_tensor_shape[1], input_tensor_shape[2], input_tensor_shape[3]
-        if (tf.dtypes.float16 == x.dtype):
-            if_half = True
-        else:
-            if_half = False
-
         ph = ((h0 - 1) // 2 + 1) * 2
         pw = ((w0 - 1) // 2 + 1) * 2
-        # 填充h w 维度 （h前填充，h后填充，w前填充，w后填充）
-        return self.forward_with_tile(x, ph, h0, pw, w0, if_half)
+        x = tf.pad(x, [[0, 0], [18, 18 + ph - h0], [18, 18 + pw - w0], [0, 0]], 'REFLECT')  # 需要保证被2整除
+        x = self.unet1(x)
+        x0 = self.unet2(x, self.alpha)
+        x = x[:, 20:-20, 20:-20, :]
 
-    def forward_with_tile(self,x,ph,h0,pw,w0,if_half):
+        x = tf.math.add(x0, x)
+        x = self.check(w0, pw, h0, ph, x)
+        output = tf.cast(
+            tf.clip_by_value(tf.math.round(((x - 0.15) * (255 / 0.7))), clip_value_min=0, clip_value_max=255),
+            dtype=tf.dtypes.uint8)
+
+
+        # output_image = tf.io.encode_png(
+        #    output
+        # )
+
+        return output
+
+    def forward_with_tile(self,x,ph,h0,pw,w0):
         tile_mode = tf.math.minimum(h0, w0) // 128  # 最小短边为128*128
         t2 = tile_mode * 2
         crop_size = (((h0 - 1) // t2 * t2 + t2) // tile_mode, ((w0 - 1) // t2 * t2 + t2) // tile_mode)
@@ -247,10 +263,7 @@ class UpCunet2x(tf.keras.layers.Layer):
         x = tf.pad(x, [[0, 0], [18, 18 + ph - h0], [18, 18 + pw - w0], [0, 0]], 'REFLECT')
         x_tensor_shape = tf.shape(x)
         n, h, w, c = x_tensor_shape[0], x_tensor_shape[1], x_tensor_shape[2], x_tensor_shape[3]
-        if (if_half):
-            se_mean0 = tf.zeros((n, 1, 1, 64), dtype=tf.dtypes.float16)
-        else:
-            se_mean0 = tf.zeros((n, 1, 1, 64), dtype=tf.dtypes.float32)
+        se_mean0 = tf.zeros((n, 1, 1, 64), dtype=tf.dtypes.float32)
         n_patch = 0
         # 构建四个tensorArray tmp_array_0 tmp_array_1 tmp_array_2 tmp_array_3
         # tensorArray的索引为i*i_length+j
@@ -282,10 +295,7 @@ class UpCunet2x(tf.keras.layers.Layer):
             #for j in tf.range(j_length):
 
         se_mean0 /= tf.cast(n_patch, dtype=tf.dtypes.float32)
-        if (if_half):
-            se_mean1 = tf.zeros((n, 1, 1, 128), dtype=tf.dtypes.float16)
-        else:
-            se_mean1 = tf.zeros((n, 1, 1, 128), dtype=tf.dtypes.float32)
+        se_mean1 = tf.zeros((n, 1, 1, 128), dtype=tf.dtypes.float32)
         for i in tf.range(i_length*j_length):
             tmp0 = tmp_array_0.read(i)
             x_crop = tmp_array_1.read(i)
@@ -299,10 +309,7 @@ class UpCunet2x(tf.keras.layers.Layer):
             tmp_array_1=tmp_array_1.write(i, tmp_x1)
             tmp_array_2=tmp_array_2.write(i, tmp_x2)
         se_mean1 /= tf.cast(n_patch, dtype=tf.dtypes.float32)
-        if (if_half):
-            se_mean0 = tf.zeros((n, 1, 1, 128), dtype=tf.dtypes.float16)
-        else:
-            se_mean0 = tf.zeros((n, 1, 1, 128), dtype=tf.dtypes.float32)
+        se_mean0 = tf.zeros((n, 1, 1, 128), dtype=tf.dtypes.float32)
         tmp_array_3 = tf.TensorArray(tf.float32, size=0, dynamic_size=True, clear_after_read=True,
                                      infer_shape=False)
         for i in tf.range(i_length*j_length):
@@ -319,10 +326,7 @@ class UpCunet2x(tf.keras.layers.Layer):
             tmp_array_2=tmp_array_2.write(i, tmp_x2)
             tmp_array_3=tmp_array_3.write(i, tmp_x3)
         se_mean0 /= tf.cast(n_patch, dtype=tf.dtypes.float32)
-        if (if_half):
-            se_mean1 = tf.zeros((n, 1, 1, 64), dtype=tf.dtypes.float16)
-        else:
-            se_mean1 = tf.zeros((n, 1, 1, 64), dtype=tf.dtypes.float32)
+        se_mean1 = tf.zeros((n, 1, 1, 64), dtype=tf.dtypes.float32)
         for i in tf.range(i_length*j_length):
             #for j in tf.range(j_length):
             opt_unet1=tmp_array_0.read(i)
@@ -338,8 +342,27 @@ class UpCunet2x(tf.keras.layers.Layer):
             tmp_array_2=tmp_array_2.write(i, tmp_x4)
         se_mean1 /= tf.cast(n_patch, dtype=tf.dtypes.float32)
 
-        with tf.device("/cpu:0"):
-            res=self.collect_res_graph_array(n,i_length,j_length,tmp_array_0,tmp_array_1,tmp_array_2,se_mean1)
+        col = tf.TensorArray(tf.uint8, size=i_length, dynamic_size=False, infer_shape=True)
+
+        for i in tf.range(i_length):
+            temp = tf.TensorArray(tf.uint8, size=j_length, dynamic_size=False, infer_shape=True)
+
+            for j in tf.range(j_length):
+                x = tmp_array_0.read(i * j_length + j)
+                tmp_x1 = tmp_array_1.read(i * j_length + j)
+                tmp_x4 = tmp_array_2.read(i * j_length + j)
+                tmp_x4 = self.unet2.conv4.seblock.mean_call(tmp_x4, se_mean1)
+                x0 = self.unet2.call_d(tmp_x1, tmp_x4)
+                x = tf.math.add(x0, x)  # x0是unet2的最终输出
+
+                temp = temp.write(j, tf.cast(tf.clip_by_value(tf.math.round((x - 0.15) * (255 / 0.7)), clip_value_min=0,
+                                                              clip_value_max=255), dtype=tf.uint8))
+
+            col = col.write(i, temp.stack())
+            temp.close()
+
+        res = col.stack()
+        col.close()
 
         tmp_array_0.close()
         tmp_array_1.close()
@@ -353,32 +376,192 @@ class UpCunet2x(tf.keras.layers.Layer):
         #return output_image
         return res
 
+    def forward_with_tile_2(self, x):
+        input_tensor_shape = tf.shape(x)
+        n, h0, w0, c = input_tensor_shape[0], input_tensor_shape[1], input_tensor_shape[2], input_tensor_shape[3]
+        tile_mode = tf.cast(tf.math.round(tf.math.divide(tf.math.minimum(h0, w0),128)), dtype=tf.dtypes.int32)  # 最小短边为128*128
+        t2 = tile_mode * 2
+        crop_size = (((h0 - 1) // t2 * t2 + t2) // tile_mode, ((w0 - 1) // t2 * t2 + t2) // tile_mode)
+        ph = ((h0 - 1) // crop_size[0] + 1) * crop_size[0]
+        pw = ((w0 - 1) // crop_size[1] + 1) * crop_size[1]
+        x = tf.pad(x, [[0, 0], [18, 18 + ph - h0], [18, 18 + pw - w0], [0, 0]], 'REFLECT')
+        x_tensor_shape = tf.shape(x)
+        n, h, w, c = x_tensor_shape[0], x_tensor_shape[1], x_tensor_shape[2], x_tensor_shape[3]
+        se_mean0 = tf.zeros((n, 1, 1, 64), dtype=tf.dtypes.float32)
+        n_patch = 0
 
-    def collect_res_graph_array(self, n, i_length, j_length, tmp_array_0, tmp_array_1, tmp_array_2, se_mean1):
-        col = tf.TensorArray(tf.uint8, size=i_length, dynamic_size=False,infer_shape=True)
+        tmp_array_0 = tf.TensorArray(tf.float32, size=0, dynamic_size=True, clear_after_read=True, infer_shape=False)
+        tmp_array_1 = tf.TensorArray(tf.float32, size=0, dynamic_size=True, clear_after_read=True, infer_shape=False)
 
-        for i in tf.range(i_length ):
-            temp = tf.TensorArray(tf.uint8, size=j_length, dynamic_size=False,infer_shape=True)
+        i_length = (h - 36) // crop_size[0]
+        j_length = (w - 36) // crop_size[1]
 
-            for j in tf.range(j_length ):
-                x = tmp_array_0.read(i * j_length + j)
-                tmp_x1 = tmp_array_1.read(i * j_length + j)
-                tmp_x4 = tmp_array_2.read(i * j_length + j)
+        def loop_body(i, tmp_array_0, tmp_array_1, se_mean0, n_patch):
+            j = i % i_length
+            x_crop = x[:, i // i_length * crop_size[0]:(i // i_length + 1) * crop_size[0] + 36,
+                     j * (crop_size[1]):(j + 1) * crop_size[1] + 36, :]
+
+
+            tmp0, x_crop = self.unet1.call_a(x_crop)
+            tmp_se_mean = tf.math.reduce_mean(x_crop, axis=(1, 2), keepdims=True)
+            se_mean0 += tmp_se_mean
+            n_patch += 1
+            tmp_array_0 = tmp_array_0.write(i, tmp0)
+            tmp_array_1 = tmp_array_1.write(i, x_crop)
+
+            return i + 1, tmp_array_0, tmp_array_1, se_mean0, n_patch
+
+        _, tmp_array_0, tmp_array_1, se_mean0, n_patch = tf.while_loop(
+            lambda i, *_: i < i_length * j_length,
+            loop_body,
+            [0, tmp_array_0, tmp_array_1, se_mean0, n_patch]
+        )
+        tmp_array_2 = tf.TensorArray(tf.float32, size=0, dynamic_size=True, clear_after_read=True, infer_shape=False)
+
+        se_mean0 /= tf.cast(n_patch, dtype=tf.dtypes.float32)
+
+        se_mean1 = tf.zeros((n, 1, 1, 128), dtype=tf.dtypes.float32)
+
+        def loop_body(i, tmp_array_0, tmp_array_1, tmp_array_2, se_mean1):
+            tmp0 = tmp_array_0.read(i)
+            x_crop = tmp_array_1.read(i)
+            x_crop = self.unet1.conv2.seblock.mean_call(x_crop, se_mean0)
+            opt_unet1 = self.unet1.call_b(tmp0, x_crop)
+            tmp_x1, tmp_x2 = self.unet2.call_a(opt_unet1)
+            opt_unet1 = opt_unet1[:, 20:-20, 20:-20, :]
+            tmp_se_mean = tf.math.reduce_mean(tmp_x2, axis=(1, 2), keepdims=True)
+            se_mean1 += tmp_se_mean
+            tmp_array_0 = tmp_array_0.write(i, opt_unet1)
+            tmp_array_1 = tmp_array_1.write(i, tmp_x1)
+            tmp_array_2 = tmp_array_2.write(i, tmp_x2)
+
+            return i + 1, tmp_array_0, tmp_array_1, tmp_array_2, se_mean1
+
+        _, tmp_array_0, tmp_array_1, tmp_array_2, se_mean1 = tf.while_loop(
+            lambda i, *_: i < i_length * j_length,
+            loop_body,
+            [0, tmp_array_0, tmp_array_1, tmp_array_2, se_mean1]
+        )
+
+        se_mean1 /= tf.cast(n_patch, dtype=tf.dtypes.float32)
+        se_mean0 = tf.zeros((n, 1, 1, 128), dtype=tf.dtypes.float32)
+        tmp_array_3 = tf.TensorArray(tf.float32, size=0, dynamic_size=True, clear_after_read=True, infer_shape=False)
+
+        def loop_body(i, tmp_array_0, tmp_array_1, tmp_array_2, tmp_array_3, se_mean0):
+            opt_unet1 = tmp_array_0.read(i)
+            tmp_x1 = tmp_array_1.read(i)
+            tmp_x2 = tmp_array_2.read(i)
+            tmp_x2 = self.unet2.conv2.seblock.mean_call(tmp_x2, se_mean1)
+            tmp_x2, tmp_x3 = self.unet2.call_b(tmp_x2)
+            tmp_se_mean = tf.math.reduce_mean(tmp_x3, axis=(1, 2), keepdims=True)
+            se_mean0 += tmp_se_mean
+            tmp_array_0 = tmp_array_0.write(i, opt_unet1)
+            tmp_array_1 = tmp_array_1.write(i, tmp_x1)
+            tmp_array_2 = tmp_array_2.write(i, tmp_x2)
+            tmp_array_3 = tmp_array_3.write(i, tmp_x3)
+
+            return i + 1, tmp_array_0, tmp_array_1, tmp_array_2, tmp_array_3, se_mean0
+
+        _, tmp_array_0, tmp_array_1, tmp_array_2, tmp_array_3, se_mean0 = tf.while_loop(
+            lambda i, *_: i < i_length * j_length,
+            loop_body,
+            [0, tmp_array_0, tmp_array_1, tmp_array_2, tmp_array_3, se_mean0]
+        )
+        se_mean0 /= tf.cast(n_patch, dtype=tf.dtypes.float32)
+        se_mean1 = tf.zeros((n, 1, 1, 64), dtype=tf.dtypes.float32)
+
+        def loop_body(i, tmp_array_0, tmp_array_1, tmp_array_2, se_mean1):
+            opt_unet1 = tmp_array_0.read(i)
+            tmp_x1 = tmp_array_1.read(i)
+            tmp_x2 = tmp_array_2.read(i)
+            tmp_x3 = tmp_array_3.read(i)
+            tmp_x3 = self.unet2.conv3.seblock.mean_call(tmp_x3, se_mean0)
+            tmp_x4 = self.unet2.call_c(tmp_x2, tmp_x3) * self.alpha
+            tmp_se_mean = tf.math.reduce_mean(tmp_x4, axis=(1, 2), keepdims=True)
+            se_mean1 += tmp_se_mean
+            tmp_array_0 = tmp_array_0.write(i, opt_unet1)
+            tmp_array_1 = tmp_array_1.write(i, tmp_x1)
+            tmp_array_2 = tmp_array_2.write(i, tmp_x4)
+
+            return i + 1, tmp_array_0, tmp_array_1, tmp_array_2, se_mean1
+
+        _, tmp_array_0, tmp_array_1, tmp_array_2, se_mean1 = tf.while_loop(
+            lambda i, *_: i < i_length * j_length,
+            loop_body,
+            [0, tmp_array_0, tmp_array_1, tmp_array_2, se_mean1]
+        )
+
+        se_mean1 /= tf.cast(n_patch, dtype=tf.dtypes.float32)
+
+        col = tf.TensorArray(tf.uint8, size=i_length, dynamic_size=False, infer_shape=True)
+
+        def loop_body(i, col):
+            temp = tf.TensorArray(tf.uint8, size=j_length, dynamic_size=False, infer_shape=True)
+
+            def temp_loop_body(j, temp):
+                index = i * j_length + j
+                x = tmp_array_0.read(index)
+                tmp_x1 = tmp_array_1.read(index)
+                tmp_x4 = tmp_array_2.read(index)
                 tmp_x4 = self.unet2.conv4.seblock.mean_call(tmp_x4, se_mean1)
                 x0 = self.unet2.call_d(tmp_x1, tmp_x4)
-                x = tf.math.add(x0, x)  # x0是unet2的最终输出
+                x = x0 + x  # x0 is the final output of unet2
 
-                temp = temp.write(j, tf.cast(tf.clip_by_value(tf.math.round((x - 0.15) * (255 / 0.7)), clip_value_min=0,
-                                                              clip_value_max=255), dtype=tf.uint8))
+                clipped_value = tf.clip_by_value(tf.math.round((x - 0.15) * (255 / 0.7)), clip_value_min=0,
+                                                 clip_value_max=255)
+                temp = temp.write(j, tf.cast(clipped_value, dtype=tf.uint8))
+
+                return j + 1, temp
+
+            _, updated_temp = tf.while_loop(lambda j, temp: j < j_length, temp_loop_body, [0, temp])
+
+            col = col.write(i, updated_temp.stack())
+
+            return i + 1, col
+
+        _, final_col = tf.while_loop(
+            lambda i, *_: i < i_length,
+            loop_body,
+            [0, col]
+        )
+
+        res = final_col.stack()
+        final_col.close()
+
+        tmp_array_0.close()
+        tmp_array_1.close()
+        tmp_array_2.close()
+        tmp_array_3.close()
+
+        return res
 
 
-            col = col.write(i, temp.stack())
-
-        col=col.stack()
-
-
-
-        return col
+    #
+    # def collect_res_graph_array(self, n, i_length, j_length, tmp_array_0, tmp_array_1, tmp_array_2, se_mean1):
+    #     col = tf.TensorArray(tf.uint8, size=i_length, dynamic_size=False,infer_shape=True)
+    #
+    #     for i in tf.range(i_length ):
+    #         temp = tf.TensorArray(tf.uint8, size=j_length, dynamic_size=False,infer_shape=True)
+    #
+    #         for j in tf.range(j_length ):
+    #             x = tmp_array_0.read(i * j_length + j)
+    #             tmp_x1 = tmp_array_1.read(i * j_length + j)
+    #             tmp_x4 = tmp_array_2.read(i * j_length + j)
+    #             tmp_x4 = self.unet2.conv4.seblock.mean_call(tmp_x4, se_mean1)
+    #             x0 = self.unet2.call_d(tmp_x1, tmp_x4)
+    #             x = tf.math.add(x0, x)  # x0是unet2的最终输出
+    #
+    #             temp = temp.write(j, tf.cast(tf.clip_by_value(tf.math.round((x - 0.15) * (255 / 0.7)), clip_value_min=0,
+    #                                                           clip_value_max=255), dtype=tf.uint8))
+    #
+    #
+    #         col = col.write(i, temp.stack())
+    #
+    #     col=col.stack()
+    #
+    #
+    #
+    #     return col
 
     @tf.function
     def check(self, w0, pw, h0, ph, x):
@@ -419,8 +602,10 @@ def load_pt_weight_to_tf(weight_path, tf_model, map_json_file_path):
 def build_model(weight_path):
     inputs = tf.keras.layers.Input(shape=(None,None,3), dtype=tf.dtypes.uint8, name='input_bytes')
     cunet = UpCunet2x(name="UpCunet2x",trainable=False)
-    input_shape = (1,1224, 1224, 3)
+
+    input_shape = (1,224, 3080, 3)
     x1 = tf.random.normal(input_shape)
+    #init
     y = cunet(x1)
     y = cunet(inputs)
     load_pt_weight_to_tf(weight_path, cunet, "weight_map.json")
@@ -433,7 +618,10 @@ def export(model, path):
 
 
 model = build_model("weights_pro/pro-no-denoise-up2x.pth")
-# model.export("/Volumes/Home/oysterqaq/Desktop/cugan-pro-no-denoise-up2x_with_tile_for_tfjs")
+model.save("/Volumes/Home/oysterqaq/Desktop/cugan_jstest_2")
+
+model.export("/Volumes/Home/oysterqaq/Desktop/cugan_jstest")
+#tfjs.converters.save_keras_model(model, "/Volumes/Home/oysterqaq/Desktop/cugan_jstest_depoly_2")
 # model=build_model("weights_pro/pro-denoise3x-up2x.pth")
 # model.export("/Volumes/Home/oysterqaq/Desktop/cugan-pro-denoise3x-up2x_with_tile_for_tfjs")
 # model=build_model("weights_pro/pro-conservative-up2x.pth")
