@@ -223,15 +223,15 @@ class UpCunet2x(tf.keras.layers.Layer):
 
         # 填充h w 维度 （h前填充，h后填充，w前填充，w后填充）
         #return self.forward_with_tile(x, ph, h0, pw, w0)
-        return self.forward_with_tile_2(x)
-        #return self.forward_withoput_tile(x, ph, h0, pw, w0)
+        #return self.forward_with_tile_2(x)
+        return self.forward_without_tile(x)
 
         # tile_mode = tf.cond(h0 > w0, lambda: h0 // 1080, lambda: w0 // 1080)
         # return tf.cond(tile_mode == 0, lambda: self.forward_withoput_tile(x, ph, h0, pw, w0),
         #                lambda: self.forward_with_tile(x, ph, h0, pw, w0))
 
 
-    def forward_withoput_tile(self,x):
+    def forward_without_tile(self,x):
         input_tensor_shape = tf.shape(x)
         n, h0, w0, c = input_tensor_shape[0], input_tensor_shape[1], input_tensor_shape[2], input_tensor_shape[3]
         ph = ((h0 - 1) // 2 + 1) * 2
@@ -563,17 +563,22 @@ class UpCunet2x(tf.keras.layers.Layer):
     #
     #     return col
 
-    @tf.function
+    #@tf.function
     def check(self, w0, pw, h0, ph, x):
-        if (w0 != pw or h0 != ph):
-            return x[:, :h0 * 2, :w0 * 2, :]
-        return x
+        # if (w0 != pw or h0 != ph):
+        #     return x[:, :h0 * 2, :w0 * 2, :]
+        # return x
+        condition = tf.logical_or(tf.not_equal(w0, pw), tf.not_equal(h0, ph))
 
-    @tf.function
-    def check2(self, w, pw, h, ph, x):
-        if (w != pw * 2 or h != ph * 2):
-            return x[:, (h - ph * 2) // 2:-((h - ph * 2) // 2), (w - pw * 2) // 2:-((w - pw * 2) // 2), :]
-        return x
+        def true_fn():
+            return x[:, :h0 * 2, :w0 * 2, :]
+
+        def false_fn():
+            return x
+
+        result = tf.cond(condition, true_fn, false_fn)
+        return result
+
 
 
 
@@ -606,7 +611,7 @@ def build_model(weight_path):
     input_shape = (1,224, 3080, 3)
     x1 = tf.random.normal(input_shape)
     #init
-    y = cunet(x1)
+    y1 = cunet(x1)
     y = cunet(inputs)
     load_pt_weight_to_tf(weight_path, cunet, "weight_map.json")
     model = tf.keras.Model(inputs=inputs, outputs=y, trainable=False)
@@ -618,7 +623,12 @@ def export(model, path):
 
 
 model = build_model("weights_pro/pro-no-denoise-up2x.pth")
-model.save("/Volumes/Home/oysterqaq/Desktop/cugan_jstest")
+model.export("/Volumes/Home/oysterqaq/Desktop/cugan_tfjs_no-denoise")
+model = build_model("weights_pro/pro-conservative-up2x.pth")
+model.export("/Volumes/Home/oysterqaq/Desktop/cugan_tfjs_conservative")
+model = build_model("weights_pro/pro-denoise3x-up2x.pth")
+model.export("/Volumes/Home/oysterqaq/Desktop/cugan_tfjs_denoise3x")
+#model.save("/Volumes/Home/oysterqaq/Desktop/cugan_jstest")
 
 #model.export("/Volumes/Home/oysterqaq/Desktop/cugan_jstest")
 #tfjs.converters.save_keras_model(model, "/Volumes/Home/oysterqaq/Desktop/cugan_jstest_depoly_2")
