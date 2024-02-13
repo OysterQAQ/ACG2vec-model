@@ -78,7 +78,7 @@ class UNet1(tf.keras.layers.Layer):
         self.conv3 = Conv2D(filters=64, kernel_size=3, strides=1, padding="valid", input_shape=(None, None, 64),
                             name=self.name + ".conv3")
         if deconv:
-            self.conv_bottom = Conv2DTranspose(filters=out_channels, kernel_size=4, strides=2, padding="same",
+            self.conv_bottom = Conv2DTranspose(filters=out_channels, kernel_size=4, strides=2, padding="valid",
                                                input_shape=(None, None, 64), name=self.name + ".conv_bottom")
         else:
             self.conv_bottom = Conv2D(filters=out_channels, kernel_size=3, strides=1, padding="valid",
@@ -105,6 +105,7 @@ class UNet1(tf.keras.layers.Layer):
         x3 = self.conv3(x1 + x2)
         x3 = LeakyReLU(alpha=0.1)(x3)
         z = self.conv_bottom(x3)
+        z = z[:, 3:-3, 3:-3, :]
         return z
 
     def call_a(self, inputs):
@@ -122,6 +123,7 @@ class UNet1(tf.keras.layers.Layer):
         x3 = self.conv3(x1 + x2)
         x3 = LeakyReLU(alpha=0.1)(x3)
         z = self.conv_bottom(x3)
+        z = z[:, 3:-3, 3:-3, :]
         return z
 
 
@@ -145,7 +147,7 @@ class UNet2(tf.keras.layers.Layer):
                             name=self.name + ".conv5")
 
         if deconv:
-            self.conv_bottom = Conv2DTranspose(filters=out_channels, kernel_size=4, strides=2, padding="valid",
+            self.conv_bottom = Conv2DTranspose(filters=out_channels, kernel_size=4, strides=2, padding="same",
                                                input_shape=(None, None, 64), name=self.name + ".conv_bottom")
         else:
             self.conv_bottom = Conv2D(filters=out_channels, kernel_size=3, strides=1, padding="valid",
@@ -179,7 +181,7 @@ class UNet2(tf.keras.layers.Layer):
         x5 = self.conv5(x1 + x4)
         x5 = LeakyReLU(alpha=0.1)(x5)
         z = self.conv_bottom(x5)
-        z = z[:, 3:-3, 3:-3, :]
+
         return z
 
     def call_a(self, inputs):
@@ -234,9 +236,9 @@ class UpCunet2x(tf.keras.Model):
         n, h0, w0, c = x.shape
         # 根据shape自动设置tile_mode
         if h0 > w0:
-            tile_mode = h0 // 1080
+            tile_mode = h0 // 128
         else:
-            tile_mode = w0 // 1080
+            tile_mode = w0 // 128
 
         if (tf.dtypes.float16 == x.dtype):
             if_half = True
@@ -271,6 +273,7 @@ class UpCunet2x(tf.keras.Model):
             tile_mode = min(min(h0, w0) // 128, int(tile_mode))  # 最小短边为128*128
             t2 = tile_mode * 2
             crop_size = (((h0 - 1) // t2 * t2 + t2) // tile_mode, ((w0 - 1) // t2 * t2 + t2) // tile_mode)
+            print(crop_size)
         else:
             print("tile_mode config error")
             os._exit(233)
@@ -292,7 +295,7 @@ class UpCunet2x(tf.keras.Model):
             for j in range(0, w - 36, crop_size[1]):
                 #用tf.TensorArray 将i,j打平成i*length+j
                 x_crop = x[:, i:i + crop_size[0] + 36, j:j + crop_size[1] + 36, :]
-                n, h1, w1, c1 = x_crop.shape
+                #n, h1, w1, c1 = x_crop.shape
                 tmp0, x_crop = self.unet1.call_a(x_crop)
                 # if (if_half):  # torch.HalfTensor/torch.cuda.HalfTensor
                 #     tmp_se_mean = torch.mean(x_crop.float(), dim=(2, 3), keepdim=True).half()
@@ -434,13 +437,15 @@ def load_pt_weight_to_tf(weight_path, tf_model, map_json_file_path):
     import json
 
     with open(map_json_file_path) as json_file:
-
         map_json = json.load(json_file)
 
     pt_weights = torch.load(weight_path, map_location="cpu")
     tf_new_weights = []
-    for tf_weight in tf_model.weights:
-        pt_weight = pt_weights[map_json[tf_weight.name]]
+    #print(tf_model.weights)
+    for tf_weight,pt_weight in zip(tf_model.weights,pt_weights.values()):
+        #print(str(tf_weight.name) + ":" + str(tf_weight.shape))
+
+        #pt_weight = pt_weights[map_json[tf_model.name]]
         if "kernel" in tf_weight.name:
             pt_weight = pt_weight.numpy()
             pt_weight = tf.transpose(pt_weight, perm=[3, 2, 1, 0])
@@ -460,13 +465,13 @@ def load_pt_weight_to_tf(weight_path, tf_model, map_json_file_path):
 # y=cunet(input)
 # model = keras.Model(inputs=input, outputs=y)
 
-input_shape = (1, 550, 550, 3)
+input_shape = (1, 224, 224, 3)
 x = tf.random.normal(input_shape)
 cunet = UpCunet2x(name="UpCunet2x")
 y = cunet(x)
 load_pt_weight_to_tf("weights_pro/pro-denoise3x-up2x.pth", cunet, "weight_map.json")
 
-imgs_map = tf.io.decode_image(tf.io.read_file("inputs/31726597.png"), channels=3)
+imgs_map = tf.io.decode_image(tf.io.read_file("inputs/test4.png"), channels=3)
 
 
 y = cunet(tf.expand_dims(imgs_map, axis=0))

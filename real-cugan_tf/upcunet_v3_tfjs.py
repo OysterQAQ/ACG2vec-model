@@ -223,8 +223,8 @@ class UpCunet2x(tf.keras.layers.Layer):
 
         # 填充h w 维度 （h前填充，h后填充，w前填充，w后填充）
         #return self.forward_with_tile(x, ph, h0, pw, w0)
-        #return self.forward_with_tile_2(x)
-        return self.forward_without_tile(x)
+        return self.forward_with_tile_2(x)
+        #return self.forward_without_tile(x)
 
         # tile_mode = tf.cond(h0 > w0, lambda: h0 // 1080, lambda: w0 // 1080)
         # return tf.cond(tile_mode == 0, lambda: self.forward_withoput_tile(x, ph, h0, pw, w0),
@@ -588,13 +588,14 @@ def load_pt_weight_to_tf(weight_path, tf_model, map_json_file_path):
     import json
 
     with open(map_json_file_path) as json_file:
-
         map_json = json.load(json_file)
 
     pt_weights = torch.load(weight_path, map_location="cpu")
     tf_new_weights = []
+    #print(tf_model.weights)
     for tf_weight,pt_weight in zip(tf_model.weights,pt_weights.values()):
-        #print(tf_model.name)
+        #print(str(tf_weight.name) + ":" + str(tf_weight.shape))
+
         #pt_weight = pt_weights[map_json[tf_model.name]]
         if "kernel" in tf_weight.name:
             pt_weight = pt_weight.numpy()
@@ -602,13 +603,30 @@ def load_pt_weight_to_tf(weight_path, tf_model, map_json_file_path):
         tf_new_weights.append(pt_weight.numpy())
 
     tf_model.set_weights(tf_new_weights)
+    # from collections import OrderedDict
+    # with open('weight_map_for_tfjs.json', 'r') as json_file:
+    #     loaded_data = json.load(json_file, object_pairs_hook=OrderedDict)
+    # values_array = list(loaded_data.values())
+    #
+    # dict={}
+    # i=0
+    # for tf_weight in tf_model.weights:
+    #
+    #     print(i)
+    #     dict[values_array[i]]=tf_weight.numpy().tolist()
+    #     i += 1
+    # with open('js_model_weight/'+str(weight_path.replace('weights_pro/','').replace('.pth',''))+'.json', 'w') as json_file:
+    #     json.dump(dict, json_file)
+
+
+
 
 
 def build_model(weight_path):
     inputs = tf.keras.layers.Input(shape=(None,None,3), dtype=tf.dtypes.uint8, name='input_bytes')
     cunet = UpCunet2x(name="UpCunet2x",trainable=False)
 
-    input_shape = (1,224, 3080, 3)
+    input_shape = (1,224, 224, 3)
     x1 = tf.random.normal(input_shape)
     #init
     y1 = cunet(x1)
@@ -636,9 +654,9 @@ model.export("/Volumes/Home/oysterqaq/Desktop/cugan_tfjs_denoise3x")
 # model.export("/Volumes/Home/oysterqaq/Desktop/cugan-pro-denoise3x-up2x_with_tile_for_tfjs")
 # model=build_model("weights_pro/pro-conservative-up2x.pth")
 # model.export("/Volumes/Home/oysterqaq/Desktop/cugan-pro-conservative-up2x_with_tile_for_tfjs")
-pic = open("inputs/test3.jpeg", "rb")
+pic = open("/Volumes/Home/oysterqaq/PycharmProjects/ACG2vec-model/real-cugan_tf/inputs/Snipaste_2024-01-04_20-14-00.jpg", "rb")
 pic_base64 = base64.urlsafe_b64encode(pic.read())
-file_path = "output/test4.png"
+file_path = "output/test45.png"
 with open(file_path, "wb") as file:
     byte_tensor = tf.io.decode_base64(pic_base64)
     imgs_map = tf.io.decode_image(byte_tensor, channels=3)
