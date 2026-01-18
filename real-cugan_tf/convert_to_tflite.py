@@ -9,3 +9,5 @@ converter.target_spec.supported_ops = [
 tflite_model = converter.convert()
 with open('/Volumes/Home/oysterqaq/Desktop/cugan_no-denoise.tflite', 'wb') as f:
   f.write(tflite_model)
+
+
