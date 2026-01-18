@@ -185,7 +185,7 @@ class UNet2(tf.keras.layers.Layer):
 
 
 class UpCunet2x(tf.keras.Model):
-    def __init__(self, in_channels=3, out_channels=3, alpha=0.7, pro=True, half=False, tile_mode=1, **kwargs):
+    def __init__(self, in_channels=3, out_channels=3, alpha=0.7, pro=True, half=False, crop_size=128, **kwargs):
         """
         初始化 UpCunet2x
         Args:
@@ -200,7 +200,7 @@ class UpCunet2x(tf.keras.Model):
         self.alpha = alpha
         self.pro = pro
         self.half = half
-        self.tile_mode = tile_mode  # 添加 tile_mode 参数
+        self.crop_size = crop_size  # 添加 tile_mode 参数
 
     def export_tf_lite(self):
         crop_size=512
@@ -240,7 +240,7 @@ class UpCunet2x(tf.keras.Model):
         # 分阶段导出图
         # stage_1
         def stage_1():
-            input = tf.keras.Input(shape=(548, 548, 3), name="input")
+            input = tf.keras.Input(shape=(164, 164, 3), name="input")
             tmp0, x_crop = self.unet1.call_a(input)
             tmp_se_mean = tf.math.reduce_mean(x_crop, axis=(1, 2), keepdims=True)
             tmp0 = tf.identity(tmp0, name='tmp0')
@@ -255,8 +255,8 @@ class UpCunet2x(tf.keras.Model):
         # stage_2
         def stage_2():
             se_mean0_input = tf.keras.Input(shape=(1, 1, 64), name="se_mean0")
-            tmp0_input = tf.keras.Input(shape=(536, 536, 64), name="tmp0")
-            x_crop_input = tf.keras.Input(shape=(268, 268, 64), name="x_crop")
+            tmp0_input = tf.keras.Input(shape=(152, 152, 64), name="tmp0")
+            x_crop_input = tf.keras.Input(shape=(76, 76, 64), name="x_crop")
 
             x_crop = self.unet1.conv2.seblock.mean_call(x_crop_input, se_mean0_input)
             opt_unet1 = self.unet1.call_b(tmp0_input, x_crop)
@@ -272,7 +272,7 @@ class UpCunet2x(tf.keras.Model):
         # stage_3
         def stage_3():
             se_mean1_input = tf.keras.Input(shape=(1, 1, 128), name="se_mean1")
-            tmp_x2_input = tf.keras.Input(shape=(526, 526, 128), name="tmp_x2")
+            tmp_x2_input = tf.keras.Input(shape=(142, 142, 128), name="tmp_x2")
             tmp_x2 = self.unet2.conv2.seblock.mean_call(tmp_x2_input, se_mean1_input)
             tmp_x2, tmp_x3 = self.unet2.call_b(tmp_x2)
             tmp_se_mean = tf.math.reduce_mean(tmp_x3, axis=(1, 2), keepdims=True)
@@ -284,8 +284,8 @@ class UpCunet2x(tf.keras.Model):
             export_stage(stage_3,"stage_3")
         # stage_4
         def stage_4():
-            tmp_x2_input = tf.keras.Input(shape=(518, 518, 128), name="tmp_x2")
-            tmp_x3_input = tf.keras.Input(shape=(259, 259, 128), name="tmp_x3")
+            tmp_x2_input = tf.keras.Input(shape=(134, 134, 128), name="tmp_x2")
+            tmp_x3_input = tf.keras.Input(shape=(67, 67, 128), name="tmp_x3")
             se_mean0_input = tf.keras.Input(shape=(1, 1, 128), name="se_mean0")
             tmp_x3 = self.unet2.conv3.seblock.mean_call(tmp_x3_input, se_mean0_input)
             tmp_x4 = self.unet2.call_c(tmp_x2_input, tmp_x3) * self.alpha
@@ -298,9 +298,9 @@ class UpCunet2x(tf.keras.Model):
             export_stage(stage_4,"stage_4")
         # stage_5
         def stage_5():
-            x_input = tf.keras.Input(shape=(1024, 1024, 3), name="x")
-            tmp_x1_input = tf.keras.Input(shape=(1028, 1028, 64), name="tmp_x1")
-            tmp_x4_input = tf.keras.Input(shape=(514, 514, 64), name="tmp_x4")
+            x_input = tf.keras.Input(shape=(256, 256, 3), name="x")
+            tmp_x1_input = tf.keras.Input(shape=(260, 260, 64), name="tmp_x1")
+            tmp_x4_input = tf.keras.Input(shape=(130, 130, 64), name="tmp_x4")
             se_mean1_input = tf.keras.Input(shape=(1, 1, 64), name="se_mean1")
             tmp_x4 = self.unet2.conv4.seblock.mean_call(tmp_x4_input, se_mean1_input)
             x0 = self.unet2.call_d(tmp_x1_input, tmp_x4)
@@ -657,13 +657,11 @@ class UpCunet2x(tf.keras.Model):
             if_half = False
 
 
-        crop_size_h = 512
-        crop_size_w = 512
-        crop_size = (crop_size_h, crop_size_w)
 
 
-        ph = ((h0 - 1) // crop_size[0] + 1) * crop_size[0]
-        pw = ((w0 - 1) // crop_size[1] + 1) * crop_size[1]
+
+        ph = ((h0 - 1) // self.crop_size  + 1) * self.crop_size
+        pw = ((w0 - 1) // self.crop_size  + 1) * self.crop_size
         x = tf.pad(x, [[0, 0], [18, 18 + pw - w0], [18, 18 + ph - h0], [0, 0]], 'REFLECT')
         n, h, w, c = x.shape
 
@@ -675,10 +673,10 @@ class UpCunet2x(tf.keras.Model):
         n_patch = 0
         tmp_dict = {}
 
-        for i in range(0, h - 36, crop_size[0]):
+        for i in range(0, h - 36, self.crop_size ):
             tmp_dict[i] = {}
-            for j in range(0, w - 36, crop_size[1]):
-                x_crop = x[:, i:i + crop_size[0] + 36, j:j + crop_size[1] + 36, :]
+            for j in range(0, w - 36, self.crop_size ):
+                x_crop = x[:, i:i + self.crop_size  + 36, j:j + self.crop_size  + 36, :]
                 tf.print("1")
                 tf.print("Processing block at (", i, ",", j, ") with shape:", tf.shape(x_crop))
                 tmp0, x_crop = self.unet1.call_a(x_crop)
@@ -694,8 +692,8 @@ class UpCunet2x(tf.keras.Model):
         else:
             se_mean1 = tf.zeros((n, 1, 1, 128), dtype=tf.dtypes.float32)
 
-        for i in range(0, h - 36, crop_size[0]):
-            for j in range(0, w - 36, crop_size[1]):
+        for i in range(0, h - 36, self.crop_size ):
+            for j in range(0, w - 36, self.crop_size ):
                 tmp0, x_crop = tmp_dict[i][j]
                 tf.print("2")
                 tf.print("Processing block at (", i, ",", j, ") with shape:", tf.shape(se_mean0))
@@ -716,8 +714,8 @@ class UpCunet2x(tf.keras.Model):
         else:
             se_mean0 = tf.zeros((n, 1, 1, 128), dtype=tf.dtypes.float32)
 
-        for i in range(0, h - 36, crop_size[0]):
-            for j in range(0, w - 36, crop_size[1]):
+        for i in range(0, h - 36, self.crop_size ):
+            for j in range(0, w - 36, self.crop_size ):
                 opt_unet1, tmp_x1, tmp_x2 = tmp_dict[i][j]
                 # 打印一次 块形状
                 tf.print("3")
@@ -739,8 +737,8 @@ class UpCunet2x(tf.keras.Model):
         else:
             se_mean1 = tf.zeros((n, 1, 1, 64), dtype=tf.dtypes.float32)
 
-        for i in range(0, h - 36, crop_size[0]):
-            for j in range(0, w - 36, crop_size[1]):
+        for i in range(0, h - 36, self.crop_size ):
+            for j in range(0, w - 36, self.crop_size ):
 
                 opt_unet1, tmp_x1, tmp_x2, tmp_x3 = tmp_dict[i][j]
                 # 打印一次 块形状
@@ -758,9 +756,9 @@ class UpCunet2x(tf.keras.Model):
         se_mean1 /= n_patch
 
         res = []
-        for i in range(0, h - 36, crop_size[0]):
+        for i in range(0, h - 36, self.crop_size ):
             temp = []
-            for j in range(0, w - 36, crop_size[1]):
+            for j in range(0, w - 36, self.crop_size ):
                 x, tmp_x1, tmp_x4 = tmp_dict[i][j]
                 # 打印一次 块形状
                 tf.print("5")
@@ -858,12 +856,12 @@ def save_image(image_array, save_path):
 # 使用示例
 if __name__ == "__main__":
     # 创建模型，设置 tile_mode=1 使用固定128x128分块
-    cunet = UpCunet2x(name="UpCunet2x", tile_mode=1)  # tile_mode=1 表示固定128x128分块
+    cunet = UpCunet2x(name="UpCunet2x", crop_size=128)  # tile_mode=1 表示固定128x128分块
 
     # 加载权重
 
     # 测试
-    input_shape = (1, 512, 512, 3)
+    input_shape = (1, 128, 128, 3)
     x = tf.random.normal(input_shape)
     y = cunet(x)
     load_pt_weight_to_tf("weights_pro/pro-denoise3x-up2x.pth", cunet, "weight_map.json")

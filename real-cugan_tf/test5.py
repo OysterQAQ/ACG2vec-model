@@ -6,27 +6,27 @@ from typing import Dict, Tuple, List
 # 输出形状 → 语义名字映射
 STAGE_OUTPUTS_WITH_SHAPE = {
     "stage_1": {
-        "tmp0": [1, 536, 536, 64],
-        "x_crop": [1, 268, 268, 64],
+        "tmp0": [1, 152, 152, 64],
+        "x_crop": [1, 76, 76, 64],
         "tmp_se_mean": [1, 1, 1, 64]
     },
     "stage_2": {
         "tmp_se_mean": [1, 1, 1, 128],
-        "tmp_x2": [1, 526, 526, 128],
-        "tmp_x1": [1, 1028, 1028, 64],
-        "opt_unet1": [1, 1024, 1024, 3]
+        "tmp_x2": [1, 142, 142, 128],
+        "tmp_x1": [1, 260, 260, 64],
+        "opt_unet1": [1, 256, 256, 3]
     },
     "stage_3": {
-        "tmp_x2": [1, 518, 518, 128],
-        "tmp_x3": [1, 259, 259, 128],
+        "tmp_x2": [1, 134, 134, 128],
+        "tmp_x3": [1, 67, 67, 128],
         "tmp_se_mean": [1, 1, 1, 128]
     },
     "stage_4": {
         "tmp_se_mean": [1, 1, 1, 64],
-        "tmp_x4": [1, 514, 514, 64]
+        "tmp_x4": [1, 130, 130, 64]
     },
     "stage_5": {
-        "x_out": [1, 1024, 1024, 3]
+        "x_out": [1, 256, 256, 3]
     },
 }
 
@@ -34,7 +34,7 @@ STAGE_OUTPUTS_WITH_SHAPE = {
 class UpCunet2x_TFLite:
     """使用导出的5个阶段TFLite模型实现超分辨率"""
 
-    def __init__(self, model_dir: str = ".", half: bool = False, pro: bool = True, alpha: float = 0.7):
+    def __init__(self, model_dir: str = ".", half: bool = False, pro: bool = True, alpha: float = 0.7, crop_size: int = 128):
         self.half = half
         self.pro = pro
         self.alpha = alpha
@@ -44,6 +44,7 @@ class UpCunet2x_TFLite:
         self.output_details = {}
         self.output_shapes = {}  # 保存每个阶段的输出形状信息
         self.load_tflite_models(model_dir)
+        self.crop_size = crop_size
 
     def load_tflite_models(self, model_dir: str):
         """加载TFLite模型"""
@@ -228,8 +229,8 @@ class UpCunet2x_TFLite:
         original_h, original_w = height, width
 
         # 计算需要padding的尺寸
-        pad_height = (512 - height % 512) % 512
-        pad_width = (512 - width % 512) % 512
+        pad_height = (self.crop_size - height % self.crop_size) % self.crop_size
+        pad_width = (self.crop_size - width % self.crop_size) % self.crop_size
 
         x = tf.pad(x, [[0, 0], [0, pad_height], [0, pad_width], [0, 0]], mode="REFLECT")
 
@@ -243,14 +244,14 @@ class UpCunet2x_TFLite:
         }
         return x.numpy(), padding_info
 
-    def process_image(self, image: np.ndarray, tile_size: int = 512) -> np.ndarray:
+    def process_image(self, image: np.ndarray) -> np.ndarray:
         # 准备输入，获取padding信息
         x, padding_info = self.prepare_input(image)
         original_h, original_w = padding_info['original_h'], padding_info['original_w']
 
         n, h0, w0, c = x.shape
 
-        crop_size_h, crop_size_w = 512, 512
+        crop_size_h, crop_size_w = self.crop_size, self.crop_size
         ph = ((h0 - 1) // crop_size_h + 1) * crop_size_h
         pw = ((w0 - 1) // crop_size_w + 1) * crop_size_w
         x_padded = np.pad(x, [[0, 0], [18, 18 + ph - h0], [18, 18 + pw - w0], [0, 0]], mode='reflect')
@@ -365,8 +366,8 @@ class UpCunet2x_TFLite:
         print(f"\n处理完成，最终输出形状: {res_concat.shape}")
         return res_concat
 
-    def __call__(self, image: np.ndarray, tile_size: int = 512) -> np.ndarray:
-        return self.process_image(image, tile_size)
+    def __call__(self, image: np.ndarray) -> np.ndarray:
+        return self.process_image(image)
 
 
 # 使用示例
@@ -428,7 +429,7 @@ if __name__ == "__main__":
     if not os.path.exists(test_image_path):
         # 如果测试图片不存在，创建一个测试图片
         print("测试图片不存在，创建测试图片...")
-        test_image = np.random.randint(0, 255, (512, 512, 3), dtype=np.uint8)
+        test_image = np.random.randint(0, 255, (128, 128, 3), dtype=np.uint8)
         cv2.imwrite("test_input.png", cv2.cvtColor(test_image, cv2.COLOR_RGB2BGR))
     else:
         test_image = load_image(test_image_path)
@@ -443,7 +444,7 @@ if __name__ == "__main__":
     # 运行超分辨率
     print("\n开始处理图片...")
     process_start = time.time()
-    result = upscaler(test_image, tile_size=512)
+    result = upscaler(test_image)
     process_time = time.time() - process_start
     print(f"处理耗时: {process_time:.2f}秒")
 
