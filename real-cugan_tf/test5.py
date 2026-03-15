@@ -2,6 +2,7 @@ import numpy as np
 import tensorflow as tf
 import os
 from typing import Dict, Tuple, List
+np.set_printoptions(suppress=True)  # 禁止科学计数法显示
 
 # 输出形状 → 语义名字映射
 STAGE_OUTPUTS_WITH_SHAPE = {
@@ -144,6 +145,11 @@ class UpCunet2x_TFLite:
         运行TFLite模型推理
         输入按形状匹配，输出按形状匹配语义名字
         """
+        if stage_name == "stage_2":
+            for key, value in inputs.items():
+                print(f"input {stage_name} Key: {key}, Value: {value}")
+
+
         interpreter = self.interpreters[stage_name]
         input_details = self.input_details[stage_name]
         output_details = self.output_details[stage_name]
@@ -206,7 +212,9 @@ class UpCunet2x_TFLite:
 
             # 调试信息
             print(f"  {stage_name}: 输出 {semantic_name} -> 形状 {output_data.shape}")
-
+        if stage_name == "stage_2":
+            for key, value in outputs.items():
+                print(f"output {stage_name} Key: {key}, Value: {value}")
         return outputs
 
     def prepare_input(self, image_array: np.ndarray) -> Tuple[np.ndarray, dict]:
@@ -260,6 +268,7 @@ class UpCunet2x_TFLite:
         se_mean0 = np.zeros((n, 1, 1, 64), dtype=np.float32)
         n_patch = 0
         tile_dict = {}
+        print(x)
 
         # ===== Stage 1 =====
         print("\n开始Stage 1处理...")
@@ -267,6 +276,7 @@ class UpCunet2x_TFLite:
             tile_dict[i] = {}
             for j in range(0, w - 36, crop_size_w):
                 x_crop = x_padded[:, i:i + crop_size_h + 36, j:j + crop_size_w + 36, :]
+
                 outputs1 = self.run_tflite_model("stage_1", {"input": x_crop})
                 tmp0 = outputs1["tmp0"]
                 x_crop_out = outputs1["x_crop"]
@@ -274,6 +284,7 @@ class UpCunet2x_TFLite:
                 se_mean0 += tmp_se_mean
                 n_patch += 1
                 tile_dict[i][j] = (tmp0, x_crop_out)
+
 
         se_mean0 /= n_patch
         print(f"Stage 1完成，处理了 {n_patch} 个图块")
@@ -340,6 +351,9 @@ class UpCunet2x_TFLite:
                                                   "serving_default_tmp_x4:0": tmp_x4,
                                                   "serving_default_se_mean1:0": se_mean1_stage4})
                 x_out = outputs5["x_out"]
+                if i ==0 and j ==0:
+                    print(f"输出：{x_out}")
+
 
                 # 后处理
                 if self.pro:
@@ -423,7 +437,7 @@ if __name__ == "__main__":
     print(f"模型加载耗时: {time.time() - start_time:.2f}秒")
 
     # 加载测试图片
-    test_image_path = "/Volumes/Home/oysterqaq/Desktop/D9589AE7E41A10C5C989A37A74511DFC.png"
+    test_image_path = "/Volumes/Home/oysterqaq/Desktop/1.jpg"
     print(f"\n加载图片: {test_image_path}")
 
     if not os.path.exists(test_image_path):

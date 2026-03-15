@@ -240,7 +240,7 @@ class UpCunet2x(tf.keras.Model):
         # 分阶段导出图
         # stage_1
         def stage_1():
-            input = tf.keras.Input(shape=(164, 164, 3), name="input")
+            input = tf.keras.Input(shape=(164, 164, 3), name="input",batch_size=1)
             tmp0, x_crop = self.unet1.call_a(input)
             tmp_se_mean = tf.math.reduce_mean(x_crop, axis=(1, 2), keepdims=True)
             tmp0 = tf.identity(tmp0, name='tmp0')
@@ -254,9 +254,9 @@ class UpCunet2x(tf.keras.Model):
             export_stage(stage_1,"stage_1")
         # stage_2
         def stage_2():
-            se_mean0_input = tf.keras.Input(shape=(1, 1, 64), name="se_mean0")
-            tmp0_input = tf.keras.Input(shape=(152, 152, 64), name="tmp0")
-            x_crop_input = tf.keras.Input(shape=(76, 76, 64), name="x_crop")
+            se_mean0_input = tf.keras.Input(shape=(1, 1, 64), name="se_mean0",batch_size=1)
+            tmp0_input = tf.keras.Input(shape=(152, 152, 64), name="tmp0",batch_size=1)
+            x_crop_input = tf.keras.Input(shape=(76, 76, 64), name="x_crop",batch_size=1)
 
             x_crop = self.unet1.conv2.seblock.mean_call(x_crop_input, se_mean0_input)
             opt_unet1 = self.unet1.call_b(tmp0_input, x_crop)
@@ -271,8 +271,8 @@ class UpCunet2x(tf.keras.Model):
             export_stage(stage_2,"stage_2")
         # stage_3
         def stage_3():
-            se_mean1_input = tf.keras.Input(shape=(1, 1, 128), name="se_mean1")
-            tmp_x2_input = tf.keras.Input(shape=(142, 142, 128), name="tmp_x2")
+            se_mean1_input = tf.keras.Input(shape=(1, 1, 128), name="se_mean1",batch_size=1)
+            tmp_x2_input = tf.keras.Input(shape=(142, 142, 128), name="tmp_x2",batch_size=1)
             tmp_x2 = self.unet2.conv2.seblock.mean_call(tmp_x2_input, se_mean1_input)
             tmp_x2, tmp_x3 = self.unet2.call_b(tmp_x2)
             tmp_se_mean = tf.math.reduce_mean(tmp_x3, axis=(1, 2), keepdims=True)
@@ -284,9 +284,9 @@ class UpCunet2x(tf.keras.Model):
             export_stage(stage_3,"stage_3")
         # stage_4
         def stage_4():
-            tmp_x2_input = tf.keras.Input(shape=(134, 134, 128), name="tmp_x2")
-            tmp_x3_input = tf.keras.Input(shape=(67, 67, 128), name="tmp_x3")
-            se_mean0_input = tf.keras.Input(shape=(1, 1, 128), name="se_mean0")
+            tmp_x2_input = tf.keras.Input(shape=(134, 134, 128), name="tmp_x2",batch_size=1)
+            tmp_x3_input = tf.keras.Input(shape=(67, 67, 128), name="tmp_x3",batch_size=1)
+            se_mean0_input = tf.keras.Input(shape=(1, 1, 128), name="se_mean0",batch_size=1)
             tmp_x3 = self.unet2.conv3.seblock.mean_call(tmp_x3_input, se_mean0_input)
             tmp_x4 = self.unet2.call_c(tmp_x2_input, tmp_x3) * self.alpha
             tmp_se_mean = tf.math.reduce_mean(tmp_x4, axis=(1, 2), keepdims=True)
@@ -298,10 +298,10 @@ class UpCunet2x(tf.keras.Model):
             export_stage(stage_4,"stage_4")
         # stage_5
         def stage_5():
-            x_input = tf.keras.Input(shape=(256, 256, 3), name="x")
-            tmp_x1_input = tf.keras.Input(shape=(260, 260, 64), name="tmp_x1")
-            tmp_x4_input = tf.keras.Input(shape=(130, 130, 64), name="tmp_x4")
-            se_mean1_input = tf.keras.Input(shape=(1, 1, 64), name="se_mean1")
+            x_input = tf.keras.Input(shape=(256, 256, 3), name="x",batch_size=1)
+            tmp_x1_input = tf.keras.Input(shape=(260, 260, 64), name="tmp_x1",batch_size=1)
+            tmp_x4_input = tf.keras.Input(shape=(130, 130, 64), name="tmp_x4",batch_size=1)
+            se_mean1_input = tf.keras.Input(shape=(1, 1, 64), name="se_mean1",batch_size=1)
             tmp_x4 = self.unet2.conv4.seblock.mean_call(tmp_x4_input, se_mean1_input)
             x0 = self.unet2.call_d(tmp_x1_input, tmp_x4)
             x = tf.math.add(x0, x_input)
@@ -868,7 +868,7 @@ if __name__ == "__main__":
     y = cunet(x)
 
     print(f"Output shape: {y.shape}")
-    original_img = load_image("/Volumes/Home/oysterqaq/Desktop/D9589AE7E41A10C5C989A37A74511DFC.png")
+    original_img = load_image("/Volumes/Home/oysterqaq/Desktop/8738055546545536e2391397e909d603.jpg")
     input_tensor = tf.expand_dims(tf.convert_to_tensor(original_img, dtype=tf.float32), axis=0)
     output_tensor = cunet(input_tensor)
     output_img = output_tensor.numpy()
